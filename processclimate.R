@@ -16,22 +16,21 @@ for (i in 1:12){
 if (T){
 for (i in 1:12){
   assign(paste0('t',month[i]), (get(paste0('th',month[i])) + get(paste0('tl',month[i])) )/2 )
-  writeRaster(get(paste0('t',month[i])), paste0('output/t',month[i],'.tif'))
+  writeRaster(get(paste0('t',month[i])), paste0('output/t',month[i],'.tif'), overwrite=T)
 }
 
 #calculate extreme winter low ----
-reduced <- aggregate(tl01, fact=5)
-
+reduced <- aggregate(tl01, fact=5,  na.rm=TRUE)
 xyz <- as.data.frame(reduced, xy=TRUE)
 Lat <- rast(cbind(x=xyz$x,y=xyz$y,z=xyz$y), type="xyz", crs=crs(tl01))
 crs(Lat) <- crs(tl01)
 Lon <- rast(cbind(x=xyz$x,y=xyz$y,z=xyz$x), type="xyz", crs=crs(tl01))
 crs(Lon) <- crs(tl01)
 
-Elev <- rast('C:/a/geo/climate/worldclim2.1/wc2.1_2.5m_elev/wc2.1_2.5m_elev.tif' )
+Elev <- rast('wc2.1_2.5m_elev/wc2.1_2.5m_elev.tif' )
 crs(Elev)=crs(tl01)
 Tcl <- min(tl01,tl02,tl03,tl04,tl05,tl06,tl07,tl08,tl09,tl10,tl11,tl12)
-writeRaster(Tcl, paste0('output/Tcl.tif'))
+writeRaster(Tcl, paste0('output/Tcl.tif'), overwrite=T)
 pacificsouth <- 1/((((Lat - -22.7)/13)^2 + ((Lon - -82.3)/14)^2)^2+1)
 amazon2 <- 1/((((Lat - -10.2)/5)^2 + ((Lon - -59.9)/10)^2)^2+1)
 amazon1 <- 1/((((Lat - -2.8)/14)^2 + ((Lon - -61.3)/19)^2)^2+1)
@@ -79,10 +78,8 @@ Tclx1 <-
   washington *	3.597	+
   colorado *	1.458	+
   hawaii *	6.673	
-
 Lat <- resample(Lat, tl01, method="bilinear")
 Tclx1 <- resample(Tclx1, tl01, method="bilinear")
-
 Tclx<-	-9.171	+
   Tcl *	1.202	+
   Elev *	0.0008691	+
@@ -90,7 +87,7 @@ Tclx<-	-9.171	+
   Tclx1
 rm(pacificsouth, amazon2, amazon1, pacificcent,mexico ,florida,pacificnorth,oklahoma,arizona,chess,
    atlantic,himalayas,kentucky,ontario,montana,minn,hudson,siberia,california,washington,colorado,hawaii,Tclx1)
-writeRaster(Tclx, paste0('output/Tclx.tif'))
+writeRaster(Tclx, paste0('output/Tclx.tif'), overwrite=T)
 plot((Tclx >= -15)+(Tclx >= 0), maxcell = 1000000)
 # PET ----
 DaysMonth <- readRDS('data/DaysMonth.RDS')
@@ -106,10 +103,28 @@ Ra <- 117.5 * (hs*sin(Lat/360*2*3.141592)*sin(declination) +
              cos(Lat/360*2*3.141592)*cos(declination)*sin(hs)) / 3.141592
 e <- 0.008404*216.7*exp(17.26939*t/
                           (t+237.3))/(t+273.3)*(Ra)*Days*abs((th - tl))^0.5 + 0.001
-writeRaster(e, paste0('output/e',month[i],'.tif'))
+writeRaster(e, paste0('output/e',month[i],'.tif'), overwrite=T)
 return(e)}
+PETPT <- function(i){
+  declination <- DaysMonth[i,]$declination
+  Days <- DaysMonth[i,]$Days
+  t <- get(paste0('t',month[i]))
+  th <- get(paste0('th',month[i]))
+  tl <- get(paste0('tl',month[i]))
+  hs <- acos(min(max(-tan(Lat/360*2*3.141592) * tan(declination),-1),1))
+  Ra <- 117.5 * (hs*sin(Lat/360*2*3.141592)*sin(declination) +
+                   cos(Lat/360*2*3.141592)*cos(declination)*sin(hs)) / 3.141592
+  esTa <- 6.1121*exp(17.502*t/(t+240.97))
+  delta <- 17.502 * 240.97 * esTa/(t + 240.97)^2
+  e <- 0.1128505*delta/(delta+0.066)*(Ra)*Days + 0.001
+  writeRaster(e, paste0('altpet/e',month[i],'.tif'), overwrite=T)
+  return(e)}
+
 for (i in 1:12){
   assign(paste0('e',month[i]), PET(i))
+}
+for (i in 1:12){
+  assign(paste0('e',month[i]), PETPT(i))
 }
 Tc <- min(t01,t02,t03,t04,t05,t06,t07,t08,t09,t10,t11,t12)
 writeRaster(Tc, paste0('output/Tc.tif'), overwrite=T)
@@ -145,6 +160,7 @@ writeRaster(surplus, paste0('output/surplus.tif'), overwrite=T)
 writeRaster(pAET, paste0('output/pAET.tif'), overwrite=T)
 #Moisture Index ----
 e <- sum(e01,e02,e03,e04,e05,e06,e07,e08,e09,e10,e11,e12)
+ept <- sum(ept01,ept02,ept03,ept04,ept05,ept06,ept07,ept08,ept09,ept10,ept11,ept12)
 p <- sum(p01,p02,p03,p04,p05,p06,p07,p08,p09,p10,p11,p12)
 m <- p/(e+0.0001)
 writeRaster(e, paste0('output/e.tif'), overwrite=T)
@@ -182,7 +198,7 @@ pluv1 <- (pAET >= 50)*(isopluv*-1+1)
 pluv2 <- (pAET>=75)*(isopluv*-1+1)
 Mreg2 <- mreg1*10+(pluv1 + pluv2)+ (m>=1)*10
 plot(Mreg2, maxcell = 1000000)
-writeRaster(Mreg2, paste0('output/Mreg2.tif'),options=c("COMPRESS=LZW"), overwrite=TRUE)
+writeRaster(Mreg2, paste0('output/Mreg2.tif'), overwrite=TRUE)
 TRegime <- (Tg >= 18)*(Cindex >= 15)*7 + 
   (Tg >= 18)*(Cindex >= 0)*(Cindex < 15)*6+
   (Tg >= 6)*(Tg < 18)*(Cindex >= 0)*5+
@@ -191,11 +207,11 @@ TRegime <- (Tg >= 18)*(Cindex >= 15)*7 +
   (Tg >= 6)*(Tg < 12)*(Cindex < 0)*2 + 
   (Tg < 6)*(Cindex < 0)*1
 plot(TRegime, maxcell = 1000000)
-writeRaster(TRegime, paste0('output/TRegime.tif'),options=c("COMPRESS=LZW"), overwrite=TRUE)
+writeRaster(TRegime, paste0('output/TRegime.tif'), overwrite=TRUE)
 #combine mregime and tregime ----
 ClimateRegime <-  TRegime*100+Mreg2
 
-writeRaster(ClimateRegime, paste0('output/ClimateRegime.tif'),options=c("COMPRESS=LZW"), overwrite=TRUE)
+writeRaster(ClimateRegime, paste0('output/ClimateRegime.tif'), overwrite=TRUE)
 
 tempclim <- (ClimateRegime == 730)*(Tg >= 24)#*(Cindex >= 20)
 ClimateRegime1 <- tempclim*731 +
@@ -217,7 +233,7 @@ tempclim <- (ClimateRegime1 == 330)*(Tg >= 15)*(Cindex >= -25)
 ClimateRegime1 <- tempclim*331 +
   (tempclim * -1+1) * ClimateRegime1
 
-writeRaster(ClimateRegime1, paste0('output/ClimateRegime5alt.tif'),options=c("COMPRESS=LZW"), overwrite=TRUE)
+writeRaster(ClimateRegime1, paste0('output/ClimateRegime5alt.tif'), overwrite=TRUE)
 
 
 #reproject rasters for modeling ----
@@ -260,3 +276,10 @@ for (i in 1:length(files)){i=13
   writeRaster(x, paste0('nam5k2/',files[i]), overwrite=T, compress='LZW')
 }
 
+e.tab <- as.data.frame(e, xy=TRUE)
+median(e.tab$tx01)
+ept.tab <- as.data.frame(ept, xy=TRUE)
+median(ept.tab$tx01)
+usa.e <- subset(e.tab, x > -126 & x < -64 & y > 24 & y < 49)
+usa.ept <- subset(ept.tab, x > -126 & x < -64 & y > 24 & y < 49)
+median(usa.e$tx01)/median(usa.ept$tx01)*1.26

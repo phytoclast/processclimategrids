@@ -1,0 +1,18 @@
+For slopes of up to 47% at a latitude of about 43 degrees.
+The sunny slope is 3.2 C warmer than non slope, and shady slope is 0.6 C cooler than non slope.
+
+
+PET on sunny slope is 1.24 times no slope, and PET on shady slope is 0.64 times no slope.
+
+
+Soil moisture on upper slopes is 0.70 that of mid slope, and lower slopes is 1.20 times that of mid slope.
+
+
+Vegetation belts are 200-500 m different between sunny and shady slopes. Differences in slope aspect are equivalent to changes in temperature and PET as with elevations. Differences in soil depth water availablity is equivalent to differences in annual precipitation.
+
+
+Radcliffe, J.E. and Lefever, K.R., 1981. Aspect influences on pasture microclimate at Coopers Creek, North Canterbury. New Zealand journal of agricultural research, 24(1), pp.55-56.
+
+Lookingbill, T. and Urban, D., 2004. An empirical approach towards improved spatial estimates of soil moisture for vegetation analysis. Landscape Ecology, 19(4), pp.417-433.
+
+Stephenson, N., 1998. Actual evapotranspiration and deficit: biologically meaningful correlates of vegetation distribution across spatial scales. Journal of biogeography, 25(5), pp.855-870.
