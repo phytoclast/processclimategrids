@@ -1,6 +1,22 @@
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 DaysMonth <- readRDS('data/DaysMonth.RDS')
 DaysMonth$declination <- 0.409*sin(2*3.141592*DaysMonth$Day_/365-1.39)
+
+Lat = 43.074722
+xy = as.data.frame(list(x=-89.384167, y=Lat))
+xy <- vect(xy, crs="+proj=longlat +datum=WGS84")
+month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
+climtab <- NA
+for (i in 1:12){
+  mon = month[i]
+  th = extract(rast(paste0('data/tx',month[i],'.tif')), xy)[2]
+  tl = extract(rast(paste0('data/tn',month[i],'.tif')), xy)[2]
+  p = extract(rast(paste0('data/p',month[i],'.tif')), xy)[2]
+  climtab0 <- cbind(mon, th, tl, p)
+  if(is.na(climtab)){climtab=climtab0}else{climtab <- rbind(climtab, climtab0)}
+}
+
+
 i=7
 declination <- DaysMonth[i,]$declination
 Days <- DaysMonth[i,]$Days
