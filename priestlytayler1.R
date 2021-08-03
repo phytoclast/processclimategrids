@@ -1,35 +1,74 @@
+library(terra)
+library(dplyr)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 DaysMonth <- readRDS('data/DaysMonth.RDS')
 DaysMonth$declination <- 0.409*sin(2*3.141592*DaysMonth$Day_/365-1.39)
-
+#acquire monthly data from grids ---- 
 Lat = 43.074722
-xy = as.data.frame(list(x=-89.384167, y=Lat))
+Lon = -89.384167
+
+xy = as.matrix(as.data.frame(list(x=Lon, y=Lat)))
 xy <- vect(xy, crs="+proj=longlat +datum=WGS84")
+Elev = extract(rast(paste0('wc2.1_2.5m_elev/wc2.1_2.5m_elev.tif')), xy)[1,2]; names(Elev) <- 'Elev'
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 climtab <- NA
 for (i in 1:12){
   mon = month[i]
-  th = extract(rast(paste0('data/tx',month[i],'.tif')), xy)[2]
-  tl = extract(rast(paste0('data/tn',month[i],'.tif')), xy)[2]
-  p = extract(rast(paste0('data/p',month[i],'.tif')), xy)[2]
+  th = extract(rast(paste0('data/tx',month[i],'.tif')), xy)[2]; names(th) <- 'th'
+  tl = extract(rast(paste0('data/tn',month[i],'.tif')), xy)[2]; names(tl) <- 'tl'
+  p = extract(rast(paste0('data/p',month[i],'.tif')), xy)[2]; names(p) <- 'p'
   climtab0 <- cbind(mon, th, tl, p)
   if(is.na(climtab)){climtab=climtab0}else{climtab <- rbind(climtab, climtab0)}
 }
 
+#Humidity ----
+climtab$t <- (climtab$th+climtab$tl)/2
+climtab$Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
+climtab$Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
+climtab$Vp = (climtab$Vpmax+climtab$Vpmin)/2
+climtab$RH = climtab$Vpmin/climtab$Vp*100
 
+
+
+#calculate radiation ----
+climtab$declination <- NA
+climtab$Days <- NA
+for(i in 1:12){
+  climtab[i,]$declination <- DaysMonth[i,]$declination
+  climtab[i,]$Days <- DaysMonth[i,]$Days
+}
+
+climtab$hs <- acos(pmin(pmax(-tan(Lat/360*2*3.141592) * tan(climtab$declination),-1),1))
+climtab$Ra <- 117.5 * (climtab$hs*sin(Lat/360*2*3.141592)*sin(climtab$declination) +
+                 cos(Lat/360*2*3.141592)*cos(climtab$declination)*sin(climtab$hs)) / 3.141592
+climtab$hs <- NULL ; climtab$declination <- NULL
+climtab$Rso <- (0.75+2*10^-5*Elev)*climtab$Ra
+climtab$Rs <- pmin(climtab$Rso,pmax(0.3*climtab$Rso, 0.175*(climtab$th-climtab$tl)^0.5*climtab$Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with constant of 0.16 inland and 0.19 for coastal
+
+climtab$Rnl <- sigma*((climtab$th+273.16)^4 + (climtab$tl+273.16)^4)/2*(0.34-0.14*climtab$Vpmin^0.5)*(1.35*min(Rs/Rso, 1) - 0.35)
+
+
+Rnl <- sigma*(Tkmax^4 + Tkmin^4)/2*(0.34-0.14*Vd^0.5)*(1.35*min(Rs/Rso, 1) - 0.35)
+Rn <- Rns - Rnl
+
+
+climtab$e <- 0.008404*216.7*exp(17.26939*climtab$t/
+                          (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*climtab$Days*abs((climtab$th - climtab$tl))^0.5 + 0.001
+
+#single month calculation
 i=7
-declination <- DaysMonth[i,]$declination
 Days <- DaysMonth[i,]$Days
-t <- 22.9 
-tr <- 25
-th <- t+tr/2
-tl <- t-tr/2
-Lat <- 34
+t = climtab[i,]$t
+th = climtab[i,]$th
+tl = climtab[i,]$tl
+declination = DaysMonth[i,]$declination
 hs <- acos(min(max(-tan(Lat/360*2*3.141592) * tan(declination),-1),1))
 Ra <- 117.5 * (hs*sin(Lat/360*2*3.141592)*sin(declination) +
                  cos(Lat/360*2*3.141592)*cos(declination)*sin(hs)) / 3.141592
 e <- 0.008404*216.7*exp(17.26939*t/
                           (t+237.3))/(t+273.3)*(Ra)*Days*abs((th - tl))^0.5 + 0.001
+
+
 # ------
 dr <- 1+0.033*cos(2*3.141592/365*DaysMonth[i,]$Day_)
 ws <- acos(-tan(Lat*2*3.141592/360)*tan(DaysMonth[i,]$declination))
@@ -98,7 +137,7 @@ Ps <- 101.3*((293-0.0065*Elev)/293)^5.26 #kPa Cp=1.013 KJ/kg/C
 gamma = 0.000665*Ps #psychrometric constant kPa/C
 Rso = (0.75 + 2*10^-5*Elev)*Ra #clear sky radiation
 #Rs = max(0.3*Rso,0.7*Ra - 4) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1
-Rs = min(max(Rso,0.3*Rso, 0.16*(th-tl)^0.5*Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with constant of 0.16 inland and 0.19 for coastal
+Rs = min(Rso,max(0.3*Rso, 0.16*(th-tl)^0.5*Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with constant of 0.16 inland and 0.19 for coastal
 Gi = 0.07*(t-t)#heat flux monthly periods previous and following months t[i+1] - t[i-1] make index to capture months in a cycle 1:14 for c(12,1:12,1); 1=m+1; m=months 1:12
 
 fcd = (1.35*Rs/Rso-0.35)
