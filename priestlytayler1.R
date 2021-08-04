@@ -9,7 +9,7 @@ Lat = 39.768611; Lon = -86.158056 # Indianapolis
 Lat = 43.074722; Lon = -89.384167 # Madison
 Lat =34.05; Lon = -118.25 #Los Angeles
 Lat = 42.961111; Lon =  -85.655556 #Grand Rapids
-#Lat = 47.925278; Lon =  -97.0325 #
+#Lat = 47.925278; Lon =  -97.0325 #47.925278, -97.0325
 
 xy = as.matrix(as.data.frame(list(x=Lon, y=Lat)))
 xy <- vect(xy, crs="+proj=longlat +datum=WGS84")
@@ -49,7 +49,6 @@ climtab$Ra <- 117.5 * (climtab$hs*sin(Lat/360*2*3.141592)*sin(climtab$declinatio
 climtab$Dl <- ifelse(Lat + climtab$declination*360/2/3.141592 > 89.16924, 24, ifelse(Lat - climtab$declination*360/2/3.141592 >= 90, 0, (atan(-((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))/(-((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))*((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))+1)^0.5)+2*atan(1))/3.141592*24))
 climtab$hs <- NULL ; climtab$declination <- NULL
 climtab$Rso <- (0.75+2*10^-5*Elev)*climtab$Ra 
-              pmin(climtab$Rso,pmax(0.3*climtab$Rso, 0.175*(climtab$th-climtab$tl)^0.5*climtab$Ra))
 climtab$Rs <- pmin(climtab$Rso,pmax(0.3*climtab$Rso, 0.14*(climtab$th-climtab$tl)^0.5*climtab$Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with average constant of 0.175 for 0.16 inland and 0.19 for coastal, but reduced to 0.14 because of bias suggests it is 0.8 of the actual values at a few selected stations
 climtab$Rnl <- 4.901*10^-9 * (1.35*climtab$Rs/climtab$Rso-0.35) * (0.34 - 0.14 * climtab$Vpmin^0.5) * ((climtab$th+273.16)^4 + (climtab$tl+273.16)^4)/2
 climtab$Rns <- (1-0.23)*climtab$Rs
@@ -63,13 +62,15 @@ climtab$lambda <- 2.501 - (2.361*10^-3)*climtab$t
 Ps <- 101.3*((293-0.0065*Elev)/293)^5.26 #kPa
 gamma = 0.000665*Ps
 
-#Thornthwaite ----
 
-climtab$I = (pmax(0,climtab$t)/5)^1.514
-I <- sum(climtab$I); climtab$I <- NULL
-a = 0.49239+1792*10^-5*I-771*10^-7*I^2+675*10^-9*I^3
-cf <- 0.92/1.26 #Correction factor to make for forest and mixed landuse vegetation instead of short grass
+climtab$I = (pmax(0,climtab$t)/5)^1.514#Thornthwaite
+I <- sum(climtab$I); climtab$I <- NULL#Thornthwaite
+a = 0.49239+1792*10^-5*I-771*10^-7*I^2+675*10^-9*I^3#Thornthwaite
+cf <- 0.92/1.26 #Correction factor to make for forest and mixed landuse vegetation instead of short grass, based on alpha of Priestly-Taylor equation
+
 climtab$e.tw = 16*(10*pmax(climtab$t,0)/I)^a*(climtab$Dl/12)*(climtab$Days/30)#Thornthwaite
+
+climtab$e.ho <- 58.93/365*pmax(0, climtab$t)*climtab$Days#Holdridge
 
 climtab$e.gs <- 0.008404*216.7*exp(17.26939*climtab$t/
                           (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*climtab$Days*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt
@@ -82,20 +83,27 @@ climtab$e.hs <- cf* 0.408*0.0023*(climtab$t+17.78)*(climtab$th-climtab$tl)^0.5*c
 
 climtab$e.tc <- cf* 0.01333 *((23.9001*climtab$Rs)+50)*pmax(climtab$t,0)/(pmax(climtab$t,0)+15)*(1+(50-pmin(50,climtab$RH))/70)*climtab$Days#Turc
 
-climtab$e.mh <- cf* 0.7 * (delta / (delta + gamma))*climtab$Rs/lambda*climtab$Days#Makkink-Hansen
+climtab$e.mh <- cf* 0.7 * (climtab$delta / (climtab$delta + gamma))*climtab$Rs/climtab$lambda*climtab$Days#Makkink-Hansen
 
+#Remove excess columns
 climtab <- subset(climtab, select= -c(Vp, Vpmax, Vpmin, delta, lambda, Rns, Rnl, Rso)) 
+write.csv(climtab,'output/climtab.csv')
+#Evaluate totals for bias correction using literature values
 mean(climtab$Rs)# MJ/m2/d
 mean(climtab$Rs)/24/3600*1000000# W/m2
-(173.2/204.8751+ # Correction of Rs for Charleston, MO
-164/220.5132+ # Correction of Rs for Aberdeen, Idaho
-159.6/196.1291+ # Correction of Rs for Spring Green, WI
-158.4/227.455+ # Correction of Rs for Fort Collins, CO
-207.7/229.5699+ # Correction of Rs for Dixon, CA
-145.7/182.1581)/6 # Correction of Rs for Grand Forks, ND
+mean(climtab$RH)
+(173.2/204.8751+ # Correction of Rs for Charleston, MO; Lat= 36.921389; Lon =  -89.346389
+    164/220.5132+ # Correction of Rs for Aberdeen, Idaho; Lat= 42.943333; Lon =  -112.839444
+    233.6/258.7754+ #Oasis, CA; Lat= 33.5275; Lon =  -116.126111
+    159.6/196.1291+ # Correction of Rs for Spring Green, WI; Lat= 43.183889; Lon = -90.103333
+    158.4/227.455+ # Correction of Rs for Fort Collins, CO; Lat =40.559167; Lon =  -105.078056
+    207.7/229.5699+ # Correction of Rs for Dixon, CA; Lat = 38.449167; Lon =  -121.826944
+    145.7/182.1581)/7 # Correction of Rs for Grand Forks, ND; Lat = 47.925278; Lon =  -97.0325
 
 #Thornthwaite
 sum(climtab$e.tw) 
+#Holdridge
+sum(climtab$e.ho) 
 #Schmidt
 sum(climtab$e.gs)
 #Priestley-Taylor
@@ -110,6 +118,8 @@ sum(climtab$e.tc)
 totalp <- sum(climtab$p)
 #Thornthwaite
 totalp/sum(climtab$e.tw) 
+#Holdridge
+totalp/sum(climtab$e.ho) 
 #Schmidt
 totalp/sum(climtab$e.gs)
 #Priestley-Taylor
@@ -126,9 +136,9 @@ totalp/sum(climtab$e.tc)
 #single month calculation
 i=7
 Days <- DaysMonth[i,]$Days
-t = climtab[i,]$t
-th = climtab[i,]$th
-tl = climtab[i,]$tl
+t = climtab[i,]$t #Mean temperature C
+th = climtab[i,]$th #daily high temperature
+tl = climtab[i,]$tl #daily low temperature
 declination = DaysMonth[i,]$declination
 hs <- acos(min(max(-tan(Lat/360*2*3.141592) * tan(declination),-1),1))
 Ra <- 117.5 * (hs*sin(Lat/360*2*3.141592)*sin(declination) +
