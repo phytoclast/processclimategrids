@@ -9,7 +9,7 @@ Lat = 39.768611; Lon = -86.158056 # Indianapolis
 Lat = 43.074722; Lon = -89.384167 # Madison
 Lat =34.05; Lon = -118.25 #Los Angeles
 Lat = 42.961111; Lon =  -85.655556 #Grand Rapids
-#Lat = 47.925278; Lon =  -97.0325 #47.925278, -97.0325
+#Lat = 67; Lon =  -100 #47.925278, -97.0325
 
 xy = as.matrix(as.data.frame(list(x=Lon, y=Lat)))
 xy <- vect(xy, crs="+proj=longlat +datum=WGS84")
@@ -51,9 +51,9 @@ climtab$Dl <- ifelse(Lat + climtab$declination*360/2/3.141592 > 89.16924, 24, if
 climtab$hs <- NULL ; climtab$declination <- NULL
 climtab$Rso <- (0.75+2*10^-5*Elev)*climtab$Ra 
 climtab$Rs <- pmin(climtab$Rso,pmax(0.3*climtab$Rso, 0.14*(climtab$th-climtab$tl)^0.5*climtab$Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with average constant of 0.175 for 0.16 inland and 0.19 for coastal, but reduced to 0.14 because of bias suggests it is 0.8 of the actual values at a few selected stations
-climtab$Rnl <- 4.901*10^-9 * (1.35*climtab$Rs/climtab$Rso-0.35) * (0.34 - 0.14 * climtab$Vpmin^0.5) * ((climtab$th+273.16)^4 + (climtab$tl+273.16)^4)/2
+climtab$Rnl <- 4.901*10^-9 * (1.35*climtab$Rs/(climtab$Rso+0.000001)-0.35) * (0.34 - 0.14 * climtab$Vpmin^0.5) * ((climtab$th+273.16)^4 + (climtab$tl+273.16)^4)/2
 climtab$Rns <- (1-0.23)*climtab$Rs
-climtab$Rn <- climtab$Rns - climtab$Rnl
+climtab$Rn <- pmax(0,climtab$Rns - climtab$Rnl)
 climtab$Gi = 0.07*(climtab[monind[as.numeric(rownames(climtab))+2],]$t - climtab[monind[as.numeric(rownames(climtab))],]$t)
 
 climtab$delta <- 2503*exp(17.27*climtab$t/(climtab$t+237.3))/(climtab$t+237.3)^2
@@ -76,9 +76,9 @@ climtab$e.ho <- 58.93/365*pmax(0, climtab$t)*climtab$Days#Holdridge
 climtab$e.gs <- 0.008404*216.7*exp(17.26939*climtab$t/
                           (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*climtab$Days*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt
 
-climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*(climtab$Rn-climtab$Gi)/climtab$lambda*climtab$Days #Priestley-Taylor
+climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*climtab$Days #Priestley-Taylor
 
-climtab$e.pm <- cf* (0.408*climtab$delta*(climtab$Rn-climtab$Gi)+gamma*900/(climtab$t+273)*2*(climtab$Vp-climtab$Vpmin))/(climtab$delta+gamma*(1+0.34*2))*climtab$Days #Penman-Monteith
+climtab$e.pm <- cf* (0.408*climtab$delta*pmax(0,(climtab$Rn-climtab$Gi))+gamma*900/(climtab$t+273)*2*(climtab$Vp-climtab$Vpmin))/(climtab$delta+gamma*(1+0.34*2))*climtab$Days #Penman-Monteith
 
 climtab$e.hs <- cf* 0.408*0.0023*(climtab$t+17.78)*(climtab$th-climtab$tl)^0.5*climtab$Ra*climtab$Days#Hargreaves Samani 
 
