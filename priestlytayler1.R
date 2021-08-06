@@ -22,6 +22,7 @@ for (i in 1:12){
   tl = extract(rast(paste0('data/tn',month[i],'.tif')), xy)[2] ; names(tl) <- 'tl'
   p = extract(rast(paste0('data/p',month[i],'.tif')), xy)[2] ; names(p) <- 'p'
   climtab0 <- as.data.frame(cbind(mon, th, tl, p))
+  rownames(climtab0) <- i
   climtab0$th <- as.numeric(climtab0$th);  climtab0$tl <- as.numeric(climtab0$tl);  climtab0$p <- as.numeric(climtab0$p)
   if(is.na(climtab)){climtab=climtab0}else{climtab <- rbind(climtab, climtab0)}
 }
