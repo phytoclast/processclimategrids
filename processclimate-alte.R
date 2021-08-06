@@ -106,7 +106,7 @@ e <- 0.008404*216.7*exp(17.26939*t/
                           (t+237.3))/(t+273.3)*(Ra)*Days*abs((th - tl))^0.5 + 0.001
 writeRaster(e, paste0('output/e',month[i],'.tif'), overwrite=T)
 return(e)}
-PETPM <- function(i){
+PETPM <- function(i){#i=12
   cf=0.92/1.26 
   declination <- DaysMonth[i,]$declination
   Days <- DaysMonth[i,]$Days
@@ -124,7 +124,7 @@ PETPM <- function(i){
                    cos(Lat/360*2*3.141592)*cos(declination)*sin(hs)) / 3.141592
   Rso <- (0.75+2*10^-5*Elev)*Ra 
   Rs <- min(Rso,max(0.3*Rso, 0.14*(th-tl)^0.5*Ra))
-  Rn <- (1-0.23)*Rs - (4.901*10^-9 * (1.35*Rs/Rso-0.35) * (0.34 - 0.14 * Vpmin^0.5) * ((th+273.16)^4 + (tl+273.16)^4)/2)
+  Rn <- max(0*Ra,(1-0.23)*Rs - (4.901*10^-9 * (1.35*Rs/(Rso+0.00001)-0.35) * (0.34 - 0.14 * Vpmin^0.5) * ((th+273.16)^4 + (tl+273.16)^4)/2))
   delta <- 2503*exp(17.27*t/(t+237.3))/(t+237.3)^2
   lambda <- 2.501 - (2.361*10^-3)*t
   Ps <- 101.3*((293-0.0065*Elev)/293)^5.26
@@ -154,6 +154,10 @@ for (i in 1:12){
 }
 Bts <- max(mean(b01, b02, b03, b04, b11, b12), mean(b05, b06, b07, b08, b09, b10))
 writeRaster(Bts, paste0('output/Bts.tif'), overwrite=T)
+for (i in 1:12){
+  assign(paste0('e',month[i]), rast(paste0('output/e.pm',month[i],'.tif')))
+}
+
 # Deficit/Surplus/pAET ----
 for (i in 1:12){
   e = get(paste0('e',month[i]))
