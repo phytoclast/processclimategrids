@@ -132,14 +132,14 @@ PETPM <- function(i){
   
   e.pm <- cf* (0.408*delta*(Rn-0)+gamma*900/(t+273)*2*(Vp-Vpmin))/(delta+gamma*(1+0.34*2))*Days
   
-  writeRaster(e.pm, paste0('altpet/e.pm',month[i],'.tif'), overwrite=T)
+  writeRaster(e.pm, paste0('output/e.pm',month[i],'.tif'), overwrite=T)
   return(e.pm)}
 
+# for (i in 1:12){
+#   assign(paste0('e',month[i]), PET(i))
+# }
 for (i in 1:12){
-  assign(paste0('e',month[i]), PET(i))
-}
-for (i in 1:12){
-  assign(paste0('e.pm',month[i]), PETPM(i))
+  assign(paste0('e',month[i]), PETPM(i))
 }
 Tc <- min(t01,t02,t03,t04,t05,t06,t07,t08,t09,t10,t11,t12)
 writeRaster(Tc, paste0('output/Tc.tif'), overwrite=T)
@@ -199,7 +199,7 @@ for (i in 1:12){
   assign(paste0('t',month[i]), rast(paste0('output/t',month[i],'.tif')))
 }
 for (i in 1:12){
-  assign(paste0('e',month[i]), rast(paste0('output/e',month[i],'.tif')))
+  assign(paste0('e',month[i]), rast(paste0('output/e.pm',month[i],'.tif')))
 }
 #Map Classification ----
 
@@ -249,52 +249,3 @@ ClimateRegime1 <- tempclim*331 +
   (tempclim * -1+1) * ClimateRegime1
 
 writeRaster(ClimateRegime1, paste0('output/ClimateRegime5alt.tif'), overwrite=TRUE)
-
-
-#reproject rasters for modeling ----
-newTclx <- rast('C:/workspace2/bonapmexico/nam5k/Tclx.tif')
-
-Tg.n <- project(Tg, newTclx, method='bilinear', filename = 'nam5k/Tg.tif', overwrite=T)
-Tc.n <- project(Tc, newTclx, method='bilinear', filename = 'nam5k/Tc.tif', overwrite=T)
-Tcl.n <- project(Tcl, newTclx, method='bilinear', filename = 'nam5k/Tcl.tif', overwrite=T)
-Tw.n <- project(Tw, newTclx, method='bilinear', filename = 'nam5k/Tw.tif', overwrite=T)
-Twh.n <- project(Twh, newTclx, method='bilinear', filename = 'nam5k/Twh.tif', overwrite=T)
-Tclx.n <- project(Tclx, newTclx, method='bilinear', filename = 'nam5k/Tclx.tif', overwrite=T)
-deficit.n <- project(deficit, newTclx, method='bilinear', filename = 'nam5k/d.tif', overwrite=T)
-surplus.n <- project(surplus, newTclx, method='bilinear', filename = 'nam5k/s.tif', overwrite=T)
-pAET.n <- project(pAET, newTclx, method='bilinear', filename = 'nam5k/pAET.tif', overwrite=T)
-m.n <- project(m, newTclx, method='bilinear', filename = 'nam5k/m.tif', overwrite=T)
-e.n <- project(e, newTclx, method='bilinear', filename = 'nam5k/e.tif', overwrite=T)
-p.n <- project(p, newTclx, method='bilinear', filename = 'nam5k/p.tif', overwrite=T)
-a <- e.n - deficit.n
-writeRaster(a, filename = 'nam5k/a.tif', overwrite=T)
-
-
-plot(a, maxcell=1000000)
-
-#name rasters
-library(stringr);library(terra);library(raster)
-files <- list.files('nam5k')
-
-for (i in 1:length(files)){
-  nm <- str_split_fixed(files[i], '\\.',3)[,1]
-  assign(nm, rast(paste0('nam5k/',files[i])))
-  x <- get(nm)
-  names(x) <- nm
-  writeRaster(x, paste0('nam5k2/',files[i]), overwrite=T, compress='LZW')
-}
-for (i in 1:length(files)){i=13
-  nm <- str_split_fixed(files[i], '\\.',3)[,1]
-  assign(nm, raster(paste0('nam5k/',files[i])))
-  x <- get(nm)
-  names(x) <- nm
-  writeRaster(x, paste0('nam5k2/',files[i]), overwrite=T, compress='LZW')
-}
-
-e.tab <- as.data.frame(e, xy=TRUE)
-median(e.tab$tx01)
-ept.tab <- as.data.frame(ept, xy=TRUE)
-median(ept.tab$tx01)
-usa.e <- subset(e.tab, x > -126 & x < -64 & y > 24 & y < 49)
-usa.ept <- subset(ept.tab, x > -126 & x < -64 & y > 24 & y < 49)
-median(usa.e$tx01)/median(usa.ept$tx01)*1.26
