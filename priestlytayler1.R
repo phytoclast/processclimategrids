@@ -26,6 +26,8 @@ for (i in 1:12){
   climtab0$th <- as.numeric(climtab0$th);  climtab0$tl <- as.numeric(climtab0$tl);  climtab0$p <- as.numeric(climtab0$p)
   if(is.na(climtab)){climtab=climtab0}else{climtab <- rbind(climtab, climtab0)}
 }
+#climtab <- read.csv('data/fernandez.csv')
+
 climtab0 <- NULL
 #Humidity ----
 climtab$t <- (climtab$th+climtab$tl)/2
@@ -86,6 +88,8 @@ climtab$e.tc <- cf* 0.01333 *((23.9001*climtab$Rs)+50)*pmax(climtab$t,0)/(pmax(c
 
 climtab$e.mh <- cf* 0.7 * (climtab$delta / (climtab$delta + gamma))*climtab$Rs/climtab$lambda*climtab$Days#Makkink-Hansen
 
+climtab$e.hm = 0.1651 * climtab$Dl * (216.7 * (6.108 * exp(17.26939*pmax(climtab$t,0) / (pmax(climtab$t,0) + 237.3))) / (pmax(climtab$t,0) + 273.3)) * 2.376169#Hamon (last factor is correlation coefficient 1.2)
+
 #Remove excess columns
 climtab <- subset(climtab, select= -c(Vp, Vpmax, Vpmin, delta, lambda, Rns, Rnl, Rso)) 
 write.csv(climtab,'output/climtab.csv')
@@ -115,6 +119,8 @@ sum(climtab$e.pm)
 sum(climtab$e.hs)
 #Turc
 sum(climtab$e.tc)
+#Hamon
+sum(climtab$e.hm)
 
 totalp <- sum(climtab$p)
 #Thornthwaite
@@ -131,8 +137,9 @@ totalp/sum(climtab$e.pm)
 totalp/sum(climtab$e.hs)
 #Turc
 totalp/sum(climtab$e.tc)
-
-
+#Hamon
+totalp/sum(climtab$e.hm)
+sum(climtab$e.tw)/sum(climtab$e.hm)*1.2
 
 #single month calculation
 i=7
@@ -182,3 +189,35 @@ e.hs <- 0.0023*(T+17.78)*(th-tl)^0.5*Ra*Days #Hargreaves Samani PET
 e.pt <- alpha * (delta / (delta + gamma))*(Rn-Gi)/lambda*Days # mm, Priestley-Taylor PET;  note that some versions use a different gamma with the lambda term there instead of main equation.
 
 e.pm <- (0.408*delta*(Rn-Gi)+gamma*Cn/(t+273)*u*(Vp-Vpmin))/(delta+gamma*(1+Cd*u))*Days #mm, Penman- Monteith PET
+
+
+
+#Set up grid extraction of multiple points ----
+norms2010 <- readRDS('data/norms2010.RDS')
+norm.stat <- unique(subset(norms2010, select=c("Station_ID","Station_Name","State","Latitude","Longitude","Elevation" )))
+month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
+stat.climtab = NULL
+
+for (j in 1:10){#j=2
+norm.stat[j,]$Station_Name
+Lat0 = norm.stat[j,]$Latitude; Lon0 =  norm.stat[j,]$Longitude
+
+xy = as.matrix(as.data.frame(list(x=Lon, y=Lat)))
+xy <- vect(xy, crs="+proj=longlat +datum=WGS84")
+Elev0 = extract(rast(paste0('wc2.1_2.5m_elev/wc2.1_2.5m_elev.tif')), xy)[1,2]; names(Elev0) <- NULL
+
+climtab <- NULL
+for (i in 1:12){#i=1
+  StationID = norm.stat[j,]$Station_ID
+  Station_Name = norm.stat[j,]$Station_Name
+  Lat = Lat0
+  Lon = Lon0
+  Elev = Elev0
+  Mon = i
+  th = extract(rast(paste0('data/tx',month[i],'.tif')), xy)[2] ; names(th) <- 'th'
+  tl = extract(rast(paste0('data/tn',month[i],'.tif')), xy)[2] ; names(tl) <- 'tl'
+  p = extract(rast(paste0('data/p',month[i],'.tif')), xy)[2] ; names(p) <- 'p'
+  climtab0 <- as.data.frame(cbind(StationID, Station_Name, Lat,Lon,Elev, Mon, th, tl, p))
+   if(is.null(climtab)){climtab=climtab0}else{climtab <- rbind(climtab, climtab0)}
+}
+if(is.null(stat.climtab)){stat.climtab=climtab}else{stat.climtab <- rbind(stat.climtab, climtab)}}
