@@ -81,7 +81,9 @@ for (i in 1:12){
   clim.tab.fill$x <- (clim.tab.fill[,paste0('th',month[i])] + clim.tab.fill[,paste0('tl',month[i])]) /2
   colnames(clim.tab.fill)[colnames(clim.tab.fill) == 'x'] <- paste0("t", month[i])
 }
+write.csv(clim.tab.fill, 'output/clim.tab.fill.csv', na='', row.names = F)
 
+clim.tab.fill <- read.csv('output/clim.tab.fill.csv')
 
 colrange = grep("^t01$", colnames(clim.tab.fill)):grep("^t12$", colnames(clim.tab.fill))
 clim.tab.fill$t.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
@@ -96,6 +98,18 @@ clim.tab.fill$td.range <- clim.tab.fill$th.mean - clim.tab.fill$tl.mean
 colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.tab.fill))
 clim.tab.fill$p.sum <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='sum')
 colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.tab.fill))
+clim.tab.fill$p.max <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='max')
 clim.tab.fill$p.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
-clim.tab.fill$p.apor <- clim.tab.fill$p.min/clim.tab.fill$p.sum
-write.csv(clim.tab.fill, 'output/clim.tab.fill.csv', na='', row.names = F)
+clim.tab.fill$p.ratio <- clim.tab.fill$p.min/(clim.tab.fill$p.max+0.000001)
+
+
+clim.tab <- subset(clim.tab.fill, !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev",
+                                                          "t.mean","tm.range","td.range","p.sum","p.ratio"))
+station <- subset(clim.tab.fill, grepl('GRAND RAPIDS',Station_Name) & !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev",
+                                                      "t.mean","tm.range","td.range","p.sum","p.ratio"))
+sLat =   station$Lat[1]  
+sLon =   station$Lon[1]  
+clim.tab$wt <- 10000/((((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*0.75*10000/90)^2)^0.5+10)
+model <- lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+
+model
