@@ -83,7 +83,16 @@ for (i in 1:12){
 }
 write.csv(clim.tab.fill, 'output/clim.tab.fill.csv', na='', row.names = F)
 
+#Load again ====
+library(terra)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 clim.tab.fill <- read.csv('output/clim.tab.fill.csv')
+for (i in 1:12){
+  clim.tab.fill$x <- (clim.tab.fill[,paste0('th',month[i])] + clim.tab.fill[,paste0('tl',month[i])]) /2
+  colnames(clim.tab.fill)[colnames(clim.tab.fill) == 'x'] <- paste0("t", month[i])
+}
 
 colrange = grep("^t01$", colnames(clim.tab.fill)):grep("^t12$", colnames(clim.tab.fill))
 clim.tab.fill$t.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
@@ -109,8 +118,11 @@ station <- subset(clim.tab.fill, grepl('GRAND RAPIDS',Station_Name) & !is.na(p.s
                                                       "t.mean","tm.range","td.range","p.sum","p.ratio"))
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
-clim.tab$wt <- 10000/((((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*0.75*10000/90)^2)^0.5+10)
-clim.tab[clim.tab$wt < 10,]$wt <- 0
+shape=2
+localzone = 50
+cutoff = 500
+clim.tab$wt <- (localzone/((((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5+localzone))^shape*100
+clim.tab[clim.tab$wt < (localzone/(cutoff+localzone))^shape*100,]$wt <- 0
 model <- lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
-
+model$coefficients[2]
 summary(model)
