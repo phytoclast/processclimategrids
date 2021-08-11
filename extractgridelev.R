@@ -110,6 +110,7 @@ station <- subset(clim.tab.fill, grepl('GRAND RAPIDS',Station_Name) & !is.na(p.s
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
 clim.tab$wt <- 10000/((((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*0.75*10000/90)^2)^0.5+10)
+clim.tab[clim.tab$wt < 10,]$wt <- 0
 model <- lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
 
-model
+summary(model)
