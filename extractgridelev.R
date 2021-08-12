@@ -89,11 +89,11 @@ library(terra)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 clim.tab.fill <- read.csv('output/clim.tab.fill.csv')
-for (i in 1:12){
+if(is.null(clim.tab.fill$t01)){for (i in 1:12){
   clim.tab.fill$x <- (clim.tab.fill[,paste0('th',month[i])] + clim.tab.fill[,paste0('tl',month[i])]) /2
   colnames(clim.tab.fill)[colnames(clim.tab.fill) == 'x'] <- paste0("t", month[i])
 }
-
+}
 colrange = grep("^t01$", colnames(clim.tab.fill)):grep("^t12$", colnames(clim.tab.fill))
 clim.tab.fill$t.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
 clim.tab.fill$t.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
