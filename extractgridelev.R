@@ -114,7 +114,7 @@ clim.tab.fill$p.ratio <- clim.tab.fill$p.min/(clim.tab.fill$p.max+0.000001)
 
 clim.tab <- subset(clim.tab.fill, !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev",
                                                           "t.mean","tm.range","td.range","p.sum","p.ratio"))
-station <- subset(clim.tab.fill, grepl('GRAND RAPIDS',Station_Name) & !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev",
+station <- subset(clim.tab.fill, grepl('RAINIER PARADISE',Station_Name) & !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev",
                                                       "t.mean","tm.range","td.range","p.sum","p.ratio"))
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
@@ -123,6 +123,75 @@ localzone = 50
 cutoff = 500
 clim.tab$wt <- (localzone/((((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5+localzone))^shape*100
 clim.tab[clim.tab$wt < (localzone/(cutoff+localzone))^shape*100,]$wt <- 0
-model <- lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
-model$coefficients[2]
+model.1 <- lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+f.t.mean = model.1$coefficients[2]
+model.2 <- lm(tm.range ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+f.t.mean = model.2$coefficients[2]
+model.3 <- lm(td.range ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+f.t.mean = model.3$coefficients[2]
+model.4 <- lm(p.sum ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+f.t.mean = model.4$coefficients[2]
+model.5 <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+f.t.mean = model.5$coefficients[2]
 summary(model)
+
+max(clim.tab$p.sum)
+p.rast <- rast('output/p.tif')
+
+
+# midslope=100
+# limit=10000
+# bottom = 0.00001
+# ex =  -log(0.5)/(log(limit) - log(midslope))
+# p=2000
+# ptrans0 <- (p+bottom)^ex
+# ptransmax <- (limit+bottom*2)^ex
+# ptrans <- log10(ptrans0/ptransmax/(1-ptrans0/ptransmax))
+# ptrans
+
+# ptrans <-  function(p){
+#   sc = 10^6
+#   tf = max(0,p)+0.0001 - sc/(max(0,p)+0.0001)
+#   return(tf)
+# }
+# 
+# prevers <- function(tf){
+#   sc = 10^6
+#   p1 = max(0,(tf + (tf^2 - -4*sc)^0.5)/2-0.0001)
+#   return(p1)}
+
+ptrans <-  function(p){
+  tf = log2(pmax(0,p+0.0001)+100)
+  return(tf)
+}
+
+prevers <- function(tf){
+  p1 = pmax(0,(2^(tf)-100)-0.0001)
+  return(p1)}
+prevers(ptrans(1000))
+
+rtrans <-  function(r){
+  tf = log2((r+0.0001)/(1 - (r+0.0001)))
+  return(tf)
+}
+rvert <-  function(tf){
+  r1 = 2^(tf/(tf+1))+0.0001
+  return(r1)
+}
+
+
+
+clim.tab$transformed <- log((clim.tab$p.ratio+0.0001)/(1 - (clim.tab$p.ratio+0.0001)))
+model.4 <- lm(transformed ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+summary(model.4)
+
+clim.tab$transformed <- log2(clim.tab$p.sum+10)
+hist(clim.tab[clim.tab$wt >0,]$p.ratio, nclass=50)
+hist(clim.tab[clim.tab$wt >0,]$transformed, nclass=50)
+
+prevers(ptrans(10000))
+
+# tf - p + sc/p = 0 
+# tf*p - p^2 + sc = 0
+# tf*p - p^2 + sc = 0
+# p^2 - tf*p - sc = 0
