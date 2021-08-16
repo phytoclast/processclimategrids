@@ -85,8 +85,36 @@ write.csv(clim.tab.fill, 'output/clim.tab.fill.csv', na='', row.names = F)
 
 #Load again ====
 library(terra)
-
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+#functions ---- 
+p.trans <-  function(p){
+  p1 = log2(pmax(0,p+0.0001)+100)
+  return(p1)
+}
+p.vert <- function(p1){
+  p = pmax(0,(2^(p1)-100)-0.0001)
+  return(p)}
+
+p.vert(p.trans(1000))
+r.trans <-  function(r){#r=1
+  r= pmin(1,(pmax(0, r)))
+  r1 = log2((r*0.899999+0.1)/(1 - (r*0.899999+0.1)))
+  return(r1)
+}
+r.vert <-  function(r1){
+  r = ((2^r1/(2^r1+1))-0.1)/0.899999
+  r = pmin(1,(pmax(0, r)))
+  return(r)
+}
+t.trans <-  function(tr){
+  tr1 = log2(tr+0.0001)
+  return(tr1)
+}
+t.vert <-  function(tr1){
+  tr = 2^(tr1)+0.0001
+  return(tr)
+}
+
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 clim.tab.fill <- read.csv('output/clim.tab.fill.csv')
 if(is.null(clim.tab.fill$t01)){for (i in 1:12){
@@ -102,20 +130,19 @@ colrange = grep("^th01$", colnames(clim.tab.fill)):grep("^th12$", colnames(clim.
 clim.tab.fill$th.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
 colrange = grep("^tl01$", colnames(clim.tab.fill)):grep("^tl12$", colnames(clim.tab.fill))
 clim.tab.fill$tl.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
-clim.tab.fill$tm.range <- clim.tab.fill$t.max - clim.tab.fill$t.min
-clim.tab.fill$td.range <- clim.tab.fill$th.mean - clim.tab.fill$tl.mean
+clim.tab.fill$tm.range <- t.trans(clim.tab.fill$t.max - clim.tab.fill$t.min)
+clim.tab.fill$td.range <- t.trans(clim.tab.fill$th.mean - clim.tab.fill$tl.mean)
 colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.tab.fill))
-clim.tab.fill$p.sum <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='sum')
+clim.tab.fill$p.sum <- p.trans(apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='sum'))
 colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.tab.fill))
 clim.tab.fill$p.max <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='max')
 clim.tab.fill$p.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
-clim.tab.fill$p.ratio <- clim.tab.fill$p.min/(clim.tab.fill$p.max+0.000001)
+clim.tab.fill$p.ratio <- r.trans(clim.tab.fill$p.min/(clim.tab.fill$p.max+0.000001))
 
 
 clim.tab <- subset(clim.tab.fill, !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev",
                                                           "t.mean","tm.range","td.range","p.sum","p.ratio"))
-station <- subset(clim.tab.fill, grepl('RAINIER PARADISE',Station_Name) & !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev",
-                                                      "t.mean","tm.range","td.range","p.sum","p.ratio"))
+station <- subset(clim.tab.fill, grepl('GRAND RAPIDS',Station_Name) & !is.na(p.sum))
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
 shape=2
@@ -123,21 +150,110 @@ localzone = 50
 cutoff = 500
 clim.tab$wt <- (localzone/((((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5+localzone))^shape*100
 clim.tab[clim.tab$wt < (localzone/(cutoff+localzone))^shape*100,]$wt <- 0
+
 model.1 <- lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
 f.t.mean = model.1$coefficients[2]
 model.2 <- lm(tm.range ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
-f.t.mean = model.2$coefficients[2]
+f.tm.range = model.2$coefficients[2]
 model.3 <- lm(td.range ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
-f.t.mean = model.3$coefficients[2]
+f.td.range = model.3$coefficients[2]
 model.4 <- lm(p.sum ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
-f.t.mean = model.4$coefficients[2]
+f.p.sum = model.4$coefficients[2]
 model.5 <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
-f.t.mean = model.5$coefficients[2]
-summary(model)
+f.p.ratio = model.5$coefficients[2]
 
-max(clim.tab$p.sum)
-p.rast <- rast('output/p.tif')
+Elev1 = 2000
 
+station$t.mean1 <- f.t.mean * (Elev1 - station$Elev) + station$t.mean 
+station$t.mean
+station$t.mean1
+station$tm.range1 <- f.tm.range * (Elev1 - station$Elev) + station$tm.range 
+t.vert(station$tm.range)
+t.vert(station$tm.range1)
+station$td.range1 <- f.td.range * (Elev1 - station$Elev) + station$td.range
+t.vert(station$td.range)
+t.vert(station$td.range1)
+station$p.sum1 <- f.p.sum * (Elev1 - station$Elev) + station$p.sum 
+p.vert(station$p.sum)
+p.vert(station$p.sum1)
+station$p.ratio1 <- f.p.ratio * (Elev1 - station$Elev) + station$p.ratio 
+r.vert(station$p.ratio)
+r.vert(station$p.ratio1)
+
+  
+
+t.colrange = grep("^t01$", colnames(station)):grep("^t12$", colnames(station))
+th.colrange = grep("^th01$", colnames(station)):grep("^th12$", colnames(station))
+tl.colrange = grep("^tl01$", colnames(station)):grep("^tl12$", colnames(station))
+p.colrange = grep("^p01$", colnames(station)):grep("^p12$", colnames(station))
+
+pfactor <-   apply(1-((1-station[,p.colrange]/station$p.max)), MARGIN = 1, FUN='sum')/apply(1-((1-station[,colrange]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))), MARGIN = 1, FUN='sum')*p.vert(station$p.sum1)/ p.vert(station$p.sum)
+#Columns same table ----
+if(F){
+for(i in 1:12){
+  station$p.x <- (1-((1-station[,p.colrange[i]]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))))*station$p.max*pfactor
+  station[,paste0('p.', month[i])] <- NULL
+  colnames(station)[colnames(station) == 'p.x'] <- paste0('p.', month[i])
+}
+for(i in 1:12){
+  station$t.x <- (station[,t.colrange[i]]-station$t.mean)/t.vert(station$tm.range)*t.vert(station$tm.range1)+station$t.mean + (station$t.mean1 - station$t.mean)
+  station[,paste0('t.', month[i])] <- NULL
+  colnames(station)[colnames(station) == 't.x'] <- paste0('t.', month[i])
+}
+
+for(i in 1:12){#i=1
+  t..colrange = grep("^t\\.01$", colnames(station)):grep("^t\\.12$", colnames(station))
+  
+  station$th.x <- station[,t..colrange[i]] + (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*t.vert(station$td.range1)/2
+  
+  station[,paste0('th.', month[i])] <- NULL
+  colnames(station)[colnames(station) == 'th.x'] <- paste0('th.', month[i])
+}
+for(i in 1:12){
+  t..colrange = grep("^t\\.01$", colnames(station)):grep("^t\\.12$", colnames(station))
+  
+  station$tl.x <- station[,t..colrange[i]] - (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*t.vert(station$td.range1)/2
+  station[,paste0('tl.', month[i])] <- NULL
+  colnames(station)[colnames(station) == 'tl.x'] <- paste0('tl.', month[i])
+}
+
+
+
+ t..colrange = grep("^t\\.01$", colnames(station)):grep("^t\\.12$", colnames(station))
+ th..colrange = grep("^th\\.01$", colnames(station)):grep("^th\\.12$", colnames(station))
+ tl..colrange = grep("^tl\\.01$", colnames(station)):grep("^tl\\.12$", colnames(station))
+ p..colrange = grep("^p\\.01$", colnames(station)):grep("^p\\.12$", colnames(station))
+ 
+ station[,t.colrange]
+ station[,t..colrange]
+ 
+ station[,th.colrange]
+ station[,th..colrange]
+ 
+ station[,tl.colrange]
+ station[,tl..colrange]
+
+ station[,p.colrange]
+ station[,p..colrange]
+ }
+ 
+ #New Table ----
+ clim.tab2 <- NULL
+ 
+ for(i in 1:12){#i=1
+   Mon = i
+   Lat=station$Lat
+   Lon=station$Lon
+   Elev=Elev1
+   p <- (1-((1-station[,p.colrange[i]]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))))*station$p.max*pfactor[1]
+  t <- (station[,t.colrange[i]]-station$t.mean)/t.vert(station$tm.range)*t.vert(station$tm.range1)+station$t.mean + (station$t.mean1 - station$t.mean)[1]
+th <- t + (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*t.vert(station$td.range1)/2
+tl <- t - (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*t.vert(station$td.range1)/2
+clim.tab0 <- data.frame(cbind(Mon,Lat,Lon,Elev,p,t,th,tl))
+if(is.null(clim.tab2)){clim.tab2 <- clim.tab0}else{clim.tab2 <- rbind(clim.tab2,clim.tab0)}
+ }
+ rownames(clim.tab2)<- clim.tab2$Mon;clim.tab0<- NULL
+ 
 
 # midslope=100
 # limit=10000
@@ -160,36 +276,6 @@ p.rast <- rast('output/p.tif')
 #   p1 = max(0,(tf + (tf^2 - -4*sc)^0.5)/2-0.0001)
 #   return(p1)}
 
-ptrans <-  function(p){
-  tf = log2(pmax(0,p+0.0001)+100)
-  return(tf)
-}
-
-prevers <- function(tf){
-  p1 = pmax(0,(2^(tf)-100)-0.0001)
-  return(p1)}
-prevers(ptrans(1000))
-
-rtrans <-  function(r){
-  tf = log2((r+0.0001)/(1 - (r+0.0001)))
-  return(tf)
-}
-rvert <-  function(tf){
-  r1 = 2^(tf/(tf+1))+0.0001
-  return(r1)
-}
-
-
-
-clim.tab$transformed <- log((clim.tab$p.ratio+0.0001)/(1 - (clim.tab$p.ratio+0.0001)))
-model.4 <- lm(transformed ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
-summary(model.4)
-
-clim.tab$transformed <- log2(clim.tab$p.sum+10)
-hist(clim.tab[clim.tab$wt >0,]$p.ratio, nclass=50)
-hist(clim.tab[clim.tab$wt >0,]$transformed, nclass=50)
-
-prevers(ptrans(10000))
 
 # tf - p + sc/p = 0 
 # tf*p - p^2 + sc = 0
