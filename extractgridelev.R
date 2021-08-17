@@ -1,6 +1,8 @@
 library(terra)
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# ----
+
 norms2010 <- readRDS('data/norms2010.RDS')
 norm.stat <- unique(subset(norms2010, select=c("Station_ID","Station_Name","State","Latitude","Longitude","Elevation" )))
 xy = as.matrix(as.data.frame(list(x=norm.stat$Longitude, y=norm.stat$Latitude)))
@@ -87,10 +89,26 @@ write.csv(clim.tab.fill, 'output/clim.tab.fill.csv', na='', row.names = F)
 library(terra)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 #functions ---- 
+e.trans <-  function(e){
+  e1 = 0.5^((e/500-1)^2)
+  return(e1)
+}
+e.wtlow <-  function(e){
+  e1 = 0.01^(e/500-1)
+  e1 = e1/(e1+1)
+  return(e1)
+}
+e.wthigh <-  function(e){
+  e1 = 0.01^(1-e/500)
+  e1 = e1/(e1+1)
+  return(e1)
+}
+
 p.trans <-  function(p){
   p1 = log2(pmax(0,p+0.0001)+100)
   return(p1)
 }
+
 p.vert <- function(p1){
   p = pmax(0,(2^(p1)-100)-0.0001)
   return(p)}
@@ -111,7 +129,7 @@ t.trans <-  function(tr){
   return(tr1)
 }
 t.vert <-  function(tr1){
-  tr = 2^(tr1)+0.0001
+  tr = 2^(tr1)-0.0001
   return(tr)
 }
 
@@ -138,42 +156,81 @@ colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.ta
 clim.tab.fill$p.max <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='max')
 clim.tab.fill$p.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
 clim.tab.fill$p.ratio <- r.trans(clim.tab.fill$p.min/(clim.tab.fill$p.max+0.000001))
+clim.tab.fill$Elev2 <- e.trans(clim.tab.fill$Elev)
 
 
-clim.tab <- subset(clim.tab.fill, !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev",
-                                                          "t.mean","tm.range","td.range","p.sum","p.ratio"))
+clim.tab <- subset(clim.tab.fill, !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev","Elev2",
+                                                          "t.mean","t.max", "t.min","tm.range","th.mean","td.range","p.sum","p.ratio"))
 station <- subset(clim.tab.fill, grepl('GRAND RAPIDS',Station_Name) & !is.na(p.sum))
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
+sElev =   station$Elev[1]  
 shape=2
 localzone = 50
 cutoff = 500
-clim.tab$wt <- (localzone/((((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5+localzone))^shape*100
-clim.tab[clim.tab$wt < (localzone/(cutoff+localzone))^shape*100,]$wt <- 0
+clim.tab$altdifwt <- (clim.tab$Elev - sElev)^2/((clim.tab$Elev - sElev)^2 + 500^2)
 
-model.1 <- lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+clim.tab$dist <- (((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5
+clim.tab$wt <- (localzone/(clim.tab$dist+localzone))^shape*100
+clim.tab$cutoff <- cutoff + cutoff*clim.tab$altdifwt/2
+clim.tab[clim.tab$dist > clim.tab$cutoff,]$wt <- 0
+clim.tab$wt.low <- clim.tab$wt * e.wtlow(clim.tab$Elev)
+clim.tab$wt.high <- clim.tab$wt * e.wthigh(clim.tab$Elev)
+
+
+summary(lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt.low))
+summary(lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt.high))
+summary(lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt))
+
+model.1 <- lm(t.mean ~ Elev + Elev2 + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+summary(model.1)
 f.t.mean = model.1$coefficients[2]
+f.t.mean2 = ifelse(is.na(model.1$coefficients[3]),0,model.1$coefficients[3])
 model.2 <- lm(tm.range ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
 f.tm.range = model.2$coefficients[2]
+model.2.1 <- lm(t.max ~ Elev + Elev2 + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+f.t.max = model.2.1$coefficients[2]
+f.t.max2 = ifelse(is.na(model.2.1$coefficients[3]),0,model.2.1$coefficients[3])
+model.2.2 <- lm(t.min ~ Elev + Elev2 + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+f.t.min = model.2.2$coefficients[2]
+f.t.min2 = ifelse(is.na(model.2.2$coefficients[3]),0,model.2.2$coefficients[3])
 model.3 <- lm(td.range ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
 f.td.range = model.3$coefficients[2]
-model.4 <- lm(p.sum ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+model.3.1 <- lm(th.mean ~ Elev + Elev2 + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+f.th.mean = model.3.1$coefficients[2]
+f.th.mean2 = ifelse(is.na(model.3.1$coefficients[3]),0,model.3.1$coefficients[3])
+model.4 <- lm(p.sum ~ Elev + Elev2 + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
+summary(model.4)
 f.p.sum = model.4$coefficients[2]
+f.p.sum2 = model.4$coefficients[3]
 model.5 <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt)
 f.p.ratio = model.5$coefficients[2]
 
-Elev1 = 2000
+Elev1 = 4000
 
-station$t.mean1 <- f.t.mean * (Elev1 - station$Elev) + station$t.mean 
+station$t.mean1 <- f.t.mean * (Elev1 - station$Elev) + f.t.mean2 * (e.trans(Elev1) - e.trans(station$Elev)) + station$t.mean 
 station$t.mean
 station$t.mean1
 station$tm.range1 <- f.tm.range * (Elev1 - station$Elev) + station$tm.range 
 t.vert(station$tm.range)
 t.vert(station$tm.range1)
+station$t.max1 <- f.t.max * (Elev1 - station$Elev) + f.t.max2 * (e.trans(Elev1) - e.trans(station$Elev))  + station$t.max 
+station$t.max
+station$t.max1
+station$t.min1 <- f.t.min * (Elev1 - station$Elev) + f.t.min2 * (e.trans(Elev1) - e.trans(station$Elev))  + station$t.min 
+station$t.min
+station$t.min1
+station$t.rangeA <- station$t.max - station$t.mean
+station$t.rangeB <- station$t.mean - station$t.min
+station$t.rangeA1 <- station$t.max1 - station$t.mean1
+station$t.rangeB1 <- station$t.mean1 - station$t.min1
 station$td.range1 <- f.td.range * (Elev1 - station$Elev) + station$td.range
 t.vert(station$td.range)
 t.vert(station$td.range1)
-station$p.sum1 <- f.p.sum * (Elev1 - station$Elev) + station$p.sum 
+station$td.rangeA1 <- ((f.th.mean * (Elev1 - station$Elev) + f.th.mean2 * (e.trans(Elev1) - e.trans(station$Elev))  + station$th.mean) - 
+                         (f.t.mean * (Elev1 - station$Elev) + f.t.mean2 * (e.trans(Elev1) - e.trans(station$Elev))  + station$t.mean ) )*2
+station$td.rangeA1
+station$p.sum1 <- f.p.sum * (Elev1 - station$Elev) + f.p.sum * (e.trans(Elev1) - e.trans(station$Elev)) + station$p.sum 
 p.vert(station$p.sum)
 p.vert(station$p.sum1)
 station$p.ratio1 <- f.p.ratio * (Elev1 - station$Elev) + station$p.ratio 
@@ -246,10 +303,22 @@ for(i in 1:12){
    Lon=station$Lon
    Elev=Elev1
    p <- (1-((1-station[,p.colrange[i]]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))))*station$p.max*pfactor[1]
-  t <- (station[,t.colrange[i]]-station$t.mean)/t.vert(station$tm.range)*t.vert(station$tm.range1)+station$t.mean + (station$t.mean1 - station$t.mean)[1]
-th <- t + (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*t.vert(station$td.range1)/2
-tl <- t - (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*t.vert(station$td.range1)/2
-clim.tab0 <- data.frame(cbind(Mon,Lat,Lon,Elev,p,t,th,tl))
+   # t <- (station[,t.colrange[i]]-station$t.mean)/t.vert(station$tm.range)*t.vert(station$tm.range1)+station$t.mean + (station$t.mean1 - station$t.mean)[1]
+      t <- ifelse(station[,t.colrange[i]]> station$t.mean, 
+               (station[,t.colrange[i]]-station$t.mean)/station$t.rangeA*station$t.rangeA1+station$t.mean + (station$t.mean1 - station$t.mean),(station[,t.colrange[i]]-station$t.mean)/station$t.rangeB*station$t.rangeB1+station$t.mean + (station$t.mean1 - station$t.mean))[1]
+   
+   # th <- t + (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*t.vert(station$td.range1)/2
+   # tl <- t - (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*t.vert(station$td.range1)/2   
+   
+   th <- t + (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*(station$td.rangeA1)/2
+   tl <- t - (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*(station$td.rangeA1)/2
+  p.o <- station[,p.colrange[i]]
+   t.o <- station[,t.colrange[i]]
+   th.o <- station[,th.colrange[i]]
+   tl.o <- station[,tl.colrange[i]]
+   
+   
+   clim.tab0 <- data.frame(cbind(Mon,Lat,Lon,Elev,p.o,p,t.o,t,th.o,tl.o,th,tl))
 if(is.null(clim.tab2)){clim.tab2 <- clim.tab0}else{clim.tab2 <- rbind(clim.tab2,clim.tab0)}
  }
  rownames(clim.tab2)<- clim.tab2$Mon;clim.tab0<- NULL
