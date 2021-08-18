@@ -1,4 +1,5 @@
-library(terra)
+
+
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 #functions ---- 
 e.trans <-  function(e){
@@ -167,54 +168,7 @@ tl.colrange = grep("^tl01$", colnames(station)):grep("^tl12$", colnames(station)
 p.colrange = grep("^p01$", colnames(station)):grep("^p12$", colnames(station))
 
 pfactor <-   apply(1-((1-station[,p.colrange]/station$p.max)), MARGIN = 1, FUN='sum')/apply(1-((1-station[,colrange]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))), MARGIN = 1, FUN='sum')*p.vert(station$p.sum1)/ p.vert(station$p.sum)
-#Columns same table ----
-if(F){
-  for(i in 1:12){
-    station$p.x <- (1-((1-station[,p.colrange[i]]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))))*station$p.max*pfactor
-    station[,paste0('p.', month[i])] <- NULL
-    colnames(station)[colnames(station) == 'p.x'] <- paste0('p.', month[i])
-  }
-  for(i in 1:12){
-    station$t.x <- (station[,t.colrange[i]]-station$t.mean)/t.vert(station$tm.range)*t.vert(station$tm.range1)+station$t.mean + (station$t.mean1 - station$t.mean)
-    station[,paste0('t.', month[i])] <- NULL
-    colnames(station)[colnames(station) == 't.x'] <- paste0('t.', month[i])
-  }
-  
-  for(i in 1:12){#i=1
-    t..colrange = grep("^t\\.01$", colnames(station)):grep("^t\\.12$", colnames(station))
-    
-    station$th.x <- station[,t..colrange[i]] + (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*t.vert(station$td.range1)/2
-    
-    station[,paste0('th.', month[i])] <- NULL
-    colnames(station)[colnames(station) == 'th.x'] <- paste0('th.', month[i])
-  }
-  for(i in 1:12){
-    t..colrange = grep("^t\\.01$", colnames(station)):grep("^t\\.12$", colnames(station))
-    
-    station$tl.x <- station[,t..colrange[i]] - (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*t.vert(station$td.range1)/2
-    station[,paste0('tl.', month[i])] <- NULL
-    colnames(station)[colnames(station) == 'tl.x'] <- paste0('tl.', month[i])
-  }
-  
-  
-  
-  t..colrange = grep("^t\\.01$", colnames(station)):grep("^t\\.12$", colnames(station))
-  th..colrange = grep("^th\\.01$", colnames(station)):grep("^th\\.12$", colnames(station))
-  tl..colrange = grep("^tl\\.01$", colnames(station)):grep("^tl\\.12$", colnames(station))
-  p..colrange = grep("^p\\.01$", colnames(station)):grep("^p\\.12$", colnames(station))
-  
-  station[,t.colrange]
-  station[,t..colrange]
-  
-  station[,th.colrange]
-  station[,th..colrange]
-  
-  station[,tl.colrange]
-  station[,tl..colrange]
-  
-  station[,p.colrange]
-  station[,p..colrange]
-}
+
 
 #New Table ----
 clim.tab2 <- NULL
@@ -240,3 +194,121 @@ for(i in 1:12){#i=1
   if(is.null(clim.tab2)){clim.tab2 <- clim.tab0}else{clim.tab2 <- rbind(clim.tab2,clim.tab0)}
 }
 rownames(clim.tab2)<- clim.tab2$Mon;clim.tab0<- NULL
+
+#PET ----
+DaysMonth <- readRDS('data/DaysMonth.RDS')
+DaysMonth$declination <- 0.409*sin(2*3.141592*DaysMonth$Day_/365-1.39)
+monind <- c(12,1:12,1)
+Elev <- Elev1
+climtab <- subset(clim.tab2, select=c(p,t,th,tl))
+#Humidity ----
+climtab$t <- (climtab$th+climtab$tl)/2
+climtab$Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
+climtab$Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
+climtab$Vp = (climtab$Vpmax+climtab$Vpmin)/2
+climtab$RH = climtab$Vpmin/climtab$Vp*100
+
+
+
+#calculate radiation ----
+climtab$declination <- NA
+climtab$Days <- NA
+for(i in 1:12){
+  climtab[i,]$declination <- DaysMonth[i,]$declination
+  climtab[i,]$Days <- DaysMonth[i,]$Days
+}
+
+climtab$hs <- acos(pmin(pmax(-tan(Lat/360*2*3.141592) * tan(climtab$declination),-1),1))
+climtab$Ra <- 117.5 * (climtab$hs*sin(Lat/360*2*3.141592)*sin(climtab$declination) +
+                         cos(Lat/360*2*3.141592)*cos(climtab$declination)*sin(climtab$hs)) / 3.141592
+climtab$Dl <- ifelse(Lat + climtab$declination*360/2/3.141592 > 89.16924, 24, ifelse(Lat - climtab$declination*360/2/3.141592 >= 90, 0, (atan(-((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))/(-((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))*((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))+1)^0.5)+2*atan(1))/3.141592*24))
+climtab$hs <- NULL ; climtab$declination <- NULL
+climtab$Rso <- (0.75+2*10^-5*Elev)*climtab$Ra 
+climtab$Rs <- pmin(climtab$Rso,pmax(0.3*climtab$Rso, 0.14*(climtab$th-climtab$tl)^0.5*climtab$Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with average constant of 0.175 for 0.16 inland and 0.19 for coastal, but reduced to 0.14 because of bias suggests it is 0.8 of the actual values at a few selected stations
+climtab$Rnl <- 4.901*10^-9 * (1.35*climtab$Rs/(climtab$Rso+0.000001)-0.35) * (0.34 - 0.14 * climtab$Vpmin^0.5) * ((climtab$th+273.16)^4 + (climtab$tl+273.16)^4)/2
+climtab$Rns <- (1-0.23)*climtab$Rs
+climtab$Rn <- pmax(0,climtab$Rns - climtab$Rnl)
+climtab$Gi = 0.07*(climtab[monind[as.numeric(rownames(climtab))+2],]$t - climtab[monind[as.numeric(rownames(climtab))],]$t)
+
+climtab$delta <- 2503*exp(17.27*climtab$t/(climtab$t+237.3))/(climtab$t+237.3)^2
+
+
+climtab$lambda <- 2.501 - (2.361*10^-3)*climtab$t
+Ps <- 101.3*((293-0.0065*Elev)/293)^5.26 #kPa
+gamma = 0.000665*Ps
+
+
+climtab$I = (pmax(0,climtab$t)/5)^1.514#Thornthwaite
+I <- sum(climtab$I); climtab$I <- NULL#Thornthwaite
+a = 0.49239+1792*10^-5*I-771*10^-7*I^2+675*10^-9*I^3#Thornthwaite
+cf <- 0.92/1.26 #Correction factor to make for forest and mixed landuse vegetation instead of short grass, based on alpha of Priestly-Taylor equation
+
+climtab$e.tw = 16*(10*pmax(climtab$t,0)/I)^a*(climtab$Dl/12)*(climtab$Days/30)#Thornthwaite
+
+climtab$e.ho <- 58.93/365*pmax(0, climtab$t)*climtab$Days#Holdridge
+
+climtab$e.gs <- 0.008404*216.7*exp(17.26939*climtab$t/
+                                     (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*climtab$Days*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt
+
+climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*climtab$Days #Priestley-Taylor
+
+climtab$e.pm <- cf* (0.408*climtab$delta*pmax(0,(climtab$Rn-climtab$Gi))+gamma*900/(climtab$t+273)*2*(climtab$Vp-climtab$Vpmin))/(climtab$delta+gamma*(1+0.34*2))*climtab$Days #Penman-Monteith
+
+climtab$e.hs <- cf* 0.408*0.0023*(climtab$t+17.78)*(climtab$th-climtab$tl)^0.5*climtab$Ra*climtab$Days#Hargreaves Samani 
+
+climtab$e.tc <- cf* 0.01333 *((23.9001*climtab$Rs)+50)*pmax(climtab$t,0)/(pmax(climtab$t,0)+15)*(1+(50-pmin(50,climtab$RH))/70)*climtab$Days#Turc
+
+climtab$e.mh <- cf* 0.7 * (climtab$delta / (climtab$delta + gamma))*climtab$Rs/climtab$lambda*climtab$Days#Makkink-Hansen
+
+climtab$e.hm = 0.1651 * climtab$Dl * (216.7 * (6.108 * exp(17.26939*pmax(climtab$t,0) / (pmax(climtab$t,0) + 237.3))) / (pmax(climtab$t,0) + 273.3)) * 2.376169#Hamon (last factor is correlation coefficient 1.2)
+
+#Remove excess columns
+climtab <- subset(climtab, select= -c(Vp, Vpmax, Vpmin, delta, lambda, Rns, Rnl, Rso)) 
+write.csv(climtab,'output/climtab.csv')
+#Evaluate totals for bias correction using literature values
+mean(climtab$Rs)# MJ/m2/d
+mean(climtab$Rs)/24/3600*1000000# W/m2
+mean(climtab$RH)
+(173.2/204.8751+ # Correction of Rs for Charleston, MO; Lat= 36.921389; Lon =  -89.346389
+    164/220.5132+ # Correction of Rs for Aberdeen, Idaho; Lat= 42.943333; Lon =  -112.839444
+    233.6/258.7754+ #Oasis, CA; Lat= 33.5275; Lon =  -116.126111
+    159.6/196.1291+ # Correction of Rs for Spring Green, WI; Lat= 43.183889; Lon = -90.103333
+    158.4/227.455+ # Correction of Rs for Fort Collins, CO; Lat =40.559167; Lon =  -105.078056
+    207.7/229.5699+ # Correction of Rs for Dixon, CA; Lat = 38.449167; Lon =  -121.826944
+    145.7/182.1581)/7 # Correction of Rs for Grand Forks, ND; Lat = 47.925278; Lon =  -97.0325
+
+#Thornthwaite
+sum(climtab$e.tw) 
+#Holdridge
+sum(climtab$e.ho) 
+#Schmidt
+sum(climtab$e.gs)
+#Priestley-Taylor
+sum(climtab$e.pt)
+#Penman- Monteith
+sum(climtab$e.pm)
+#Hargreaves Samani
+sum(climtab$e.hs)
+#Turc
+sum(climtab$e.tc)
+#Hamon
+sum(climtab$e.hm)
+
+totalp <- sum(climtab$p)
+#Thornthwaite
+totalp/sum(climtab$e.tw) 
+#Holdridge
+totalp/sum(climtab$e.ho) 
+#Schmidt
+totalp/sum(climtab$e.gs)
+#Priestley-Taylor
+totalp/sum(climtab$e.pt)
+#Penman- Monteith
+totalp/sum(climtab$e.pm)
+#Hargreaves Samani
+totalp/sum(climtab$e.hs)
+#Turc
+totalp/sum(climtab$e.tc)
+#Hamon
+totalp/sum(climtab$e.hm)
+sum(climtab$e.tw)/sum(climtab$e.hm)*1.2
