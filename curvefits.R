@@ -47,7 +47,30 @@ t.vert <-  function(tr1){
 }
 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
-clim.tab.fill <- read.csv('output/clim.tab.fill.csv')
+pre.tab <- read.csv('output/clim.tab.fill.csv')
+cols.th <- colnames(pre.tab[,grep("^th01$", colnames(pre.tab)):grep("^th12$", colnames(pre.tab))])
+cols.tl <- colnames(pre.tab[,grep("^tl01$", colnames(pre.tab)):grep("^tl12$", colnames(pre.tab))])
+cols.p <- colnames(pre.tab[,grep("^p01$", colnames(pre.tab)):grep("^p12$", colnames(pre.tab))])
+cols.th.2080 <- colnames(pre.tab[,grep("^th.2080.01$", colnames(pre.tab)):grep("^th.2080.12$", colnames(pre.tab))])
+cols.tl.2080 <- colnames(pre.tab[,grep("^tl.2080.01$", colnames(pre.tab)):grep("^tl.2080.12$", colnames(pre.tab))])
+cols.p.2080 <- colnames(pre.tab[,grep("^p.2080.01$", colnames(pre.tab)):grep("^p.2080.12$", colnames(pre.tab))])
+
+
+#Choose Warming or not (T/F) ----
+warming = F
+
+
+
+clim.tab.fill <- pre.tab
+if(warming == T){
+  clim.tab.fill <- clim.tab.fill[, !colnames(clim.tab.fill) %in% c(cols.th, cols.tl, cols.p)]
+  colnames(clim.tab.fill)[colnames(clim.tab.fill) %in% cols.th.2080] <- cols.th
+  colnames(clim.tab.fill)[colnames(clim.tab.fill) %in% cols.tl.2080] <- cols.tl
+  colnames(clim.tab.fill)[colnames(clim.tab.fill) %in% cols.p.2080] <- cols.p
+}else{
+  clim.tab.fill <- clim.tab.fill[, !colnames(clim.tab.fill) %in% c(cols.th.2080, cols.tl.2080, cols.p.2080)]
+}
+
 if(is.null(clim.tab.fill$t01)){for (i in 1:12){
   clim.tab.fill$x <- (clim.tab.fill[,paste0('th',month[i])] + clim.tab.fill[,paste0('tl',month[i])]) /2
   colnames(clim.tab.fill)[colnames(clim.tab.fill) == 'x'] <- paste0("t", month[i])
@@ -70,11 +93,15 @@ clim.tab.fill$p.max <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='max')
 clim.tab.fill$p.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
 clim.tab.fill$p.ratio <- r.trans(clim.tab.fill$p.min/(clim.tab.fill$p.max+0.000001))
 clim.tab.fill$Elev2 <- e.trans(clim.tab.fill$Elev)
-
+#----
 
 clim.tab <- subset(clim.tab.fill, !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev","Elev2",
                                                           "t.mean","t.max", "t.min","tm.range","th.mean","td.range","p.sum","p.ratio"))
-station <- subset(clim.tab.fill, grepl('DEATH',Station_Name) & !is.na(p.sum)) [1,]
+
+#Choose Station Name ----
+st.name = 'GRAND RAPIDS'
+
+station <- subset(clim.tab.fill, grepl(st.name,Station_Name) & !is.na(p.sum)) [1,]
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
 sElev =   station$Elev[1]  
@@ -133,6 +160,7 @@ f.p.ratioA = model.5A$coefficients[2]
 model.5B <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt.high)
 f.p.ratioB = model.5B$coefficients[2]
 
+#Choose Elevation ----
 Elev1 = 2000
 
 station$t.mean1 <- f.t.meanA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.t.meanB * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$t.mean 
