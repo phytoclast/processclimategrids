@@ -50,7 +50,7 @@ climtab$hs <- acos(pmin(pmax(-tan(Lat/360*2*3.141592) * tan(climtab$declination)
 climtab$Ra <- 117.5 * (climtab$hs*sin(Lat/360*2*3.141592)*sin(climtab$declination) +
                  cos(Lat/360*2*3.141592)*cos(climtab$declination)*sin(climtab$hs)) / 3.141592
 climtab$Dl <- ifelse(Lat + climtab$declination*360/2/3.141592 > 89.16924, 24, ifelse(Lat - climtab$declination*360/2/3.141592 >= 90, 0, (atan(-((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))/(-((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))*((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))+1)^0.5)+2*atan(1))/3.141592*24))
-climtab$hs <- NULL ; climtab$declination <- NULL
+#climtab$hs <- NULL ; climtab$declination <- NULL
 climtab$Rso <- (0.75+2*10^-5*Elev)*climtab$Ra 
 climtab$Rs <- pmin(climtab$Rso,pmax(0.3*climtab$Rso, 0.14*(climtab$th-climtab$tl)^0.5*climtab$Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with average constant of 0.175 for 0.16 inland and 0.19 for coastal, but reduced to 0.14 because of bias suggests it is 0.8 of the actual values at a few selected stations
 climtab$Rnl <- 4.901*10^-9 * (1.35*climtab$Rs/(climtab$Rso+0.000001)-0.35) * (0.34 - 0.14 * climtab$Vpmin^0.5) * ((climtab$th+273.16)^4 + (climtab$tl+273.16)^4)/2
@@ -65,7 +65,26 @@ climtab$lambda <- 2.501 - (2.361*10^-3)*climtab$t
 Ps <- 101.3*((293-0.0065*Elev)/293)^5.26 #kPa
 gamma = 0.000665*Ps
 
+#calculate radiation on slope ----
+if(F){
+hs <- climtab$hs[7]
+declination <- climtab$declination[7]
+aspect = 180*2*3.141592/360
+slope = 30*2*3.141592/360
+lat = Lat*2*3.141592/360
 
+o1x=asin(sin(lat)*cos(slope) - cos(lat)*sin(slope)*cos(aspect))
+d=1/2*(h1-h0); e=1/2*(h1-h0)
+g = asin(sin(B)*sin(aspect)*1/cos(o1x))
+wx = acos(-tan(o1x)*tan(o6))
+
+
+
+Rslope = (sin(o1x)/sin(o1)*(d - sin(d)*cos(e)*cos(g)/cos(wx)))/(hs-tan(hs))
+}
+
+
+# ----
 climtab$I = (pmax(0,climtab$t)/5)^1.514#Thornthwaite
 I <- sum(climtab$I); climtab$I <- NULL#Thornthwaite
 a = 0.49239+1792*10^-5*I-771*10^-7*I^2+675*10^-9*I^3#Thornthwaite
