@@ -49,7 +49,11 @@ Elev.tab.merge <- subset(Elev.tab.merge, dist == mindist )
 Elev.tab.agg <- aggregate(list(Lon = Elev.tab.merge$Lon, Lat = Elev.tab.merge$Lat), by=list(Elev = Elev.tab.merge$Elev, E.cell = Elev.tab.merge$E.cell), FUN='mean')
 
 saveRDS(Elev.tab.agg,'output/Elev.tab.RDS')
+
 #Load points then extract ----
+#
+#
+#
 Elev.tab <- readRDS('output/Elev.tab.RDS')
 norms2010 <- readRDS('data/norms2010.RDS')
 
@@ -79,10 +83,23 @@ for (i in 1:12){
   p = extract(rast(paste0('data/p',month[i],'.tif')), xy); p <- subset(p, select= -ID); colnames(p) <- paste0('p',month[i])
   clim.tab.fill <- cbind(clim.tab.fill, p)
 }
+
+# warming ---- 
 for (i in 1:12){
-  clim.tab.fill$x <- (clim.tab.fill[,paste0('th',month[i])] + clim.tab.fill[,paste0('tl',month[i])]) /2
-  colnames(clim.tab.fill)[colnames(clim.tab.fill) == 'x'] <- paste0("t", month[i])
+  th = pmax(extract(rast(paste0('warming/tx',month[i],'.tif')), xy), extract(rast(paste0('warming/tn',month[i],'.tif')), xy)); th <- subset(th, select= -ID); colnames(th) <- paste0('th.2080.',month[i])
+  clim.tab.fill <- cbind(clim.tab.fill, th)
 }
+for (i in 1:12){
+  tl = pmin(extract(rast(paste0('warming/tx',month[i],'.tif')), xy), extract(rast(paste0('warming/tn',month[i],'.tif')), xy)); tl <- subset(tl, select= -ID); colnames(tl) <- paste0('tl.2080.',month[i])
+  clim.tab.fill <- cbind(clim.tab.fill, tl)
+}
+
+for (i in 1:12){
+  p = extract(rast(paste0('warming/p',month[i],'.tif')), xy); p <- subset(p, select= -ID); colnames(p) <- paste0('p.2080.',month[i])
+  clim.tab.fill <- cbind(clim.tab.fill, p)
+}
+
+
 write.csv(clim.tab.fill, 'output/clim.tab.fill.csv', na='', row.names = F)
 
 #Load again ====
