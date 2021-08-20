@@ -66,7 +66,7 @@ Ps <- 101.3*((293-0.0065*Elev)/293)^5.26 #kPa
 gamma = 0.000665*Ps
 
 #calculate radiation on slope ----
-if(F){
+if(FALSE){
 hs <- climtab$hs[7]
 declination <- climtab$declination[7]
 aspect = 180*2*3.141592/360
@@ -78,12 +78,44 @@ d=1/2*(h1-h0); e=1/2*(h1-h0)
 g = asin(sin(B)*sin(aspect)*1/cos(o1x))
 wx = acos(-tan(o1x)*tan(o6))
 
-
+poop=1
 
 Rslope = (sin(o1x)/sin(o1)*(d - sin(d)*cos(e)*cos(g)/cos(wx)))/(hs-tan(hs))
+
+1.8
+1.44
+# radiation of sunslope 1.8 times shade slope all year; 1.44 times during growing season
+Lat = -(43+15/60); Lon= (172 + 8/60); Elev = (290+440)/2
+
+th.mean = mean(climtab$th)
+r.mean = mean(climtab$Ra)
+climtab$Ra/r.mean * 3.6*2
+
+8.7+3.3/2
+8.7-3.3/2
+2.2+1.0/2
+2.2-1.0/2
+24.7+7.5/2 
+24.7-7.5/2 
+17.9+4.8/2
+17.9-4.8/2
+
+soilhighdif = (24.7+7.5/2 - (17.9+4.8/2) +
+9.6+3.2/2 - (2.6+1.1/2) +
+19.1+3.0/2 - (15.6+3.1/2) +
+8.7+3.3/2 - (2.2+1.0/2))/4
+
+soillowdif = (24.7-7.5/2 - (17.9-4.8/2) +
+19.1-3.0/2 - (15.6-3.1/2) + 
+9.6-3.2/2 - (2.6-1.1/2) +
+8.7-3.3/2 - (2.2-1.0/2))/4
+soilhighdif/(soilhighdif+soillowdif)*2 *.6 #degrees cooler for high temperature on shade slope (to distribute according to relative radiation difference)
+soillowdif/(soilhighdif+soillowdif)*2 *.6 #degrees cooler for low temperature on shade slope
+
+soilhighdif/(soilhighdif+soillowdif)*2 *3.2 #degrees warmer for high temperature on sun slope
+soillowdif/(soilhighdif+soillowdif)*2 *3.2 #degrees warmer for low temperature on sun slope
+
 }
-
-
 # ----
 climtab$I = (pmax(0,climtab$t)/5)^1.514#Thornthwaite
 I <- sum(climtab$I); climtab$I <- NULL#Thornthwaite
