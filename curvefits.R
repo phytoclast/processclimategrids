@@ -47,7 +47,7 @@ t.vert <-  function(tr1){
 }
 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
-pre.tab <- read.csv('output/clim.tab.fill.csv')
+pre.tab <- read.csv('output/clim.tab.fill.csv')#; saveRDS(pre.tab, 'output/pre.tab.RDS')
 cols.th <- colnames(pre.tab[,grep("^th01$", colnames(pre.tab)):grep("^th12$", colnames(pre.tab))])
 cols.tl <- colnames(pre.tab[,grep("^tl01$", colnames(pre.tab)):grep("^tl12$", colnames(pre.tab))])
 cols.p <- colnames(pre.tab[,grep("^p01$", colnames(pre.tab)):grep("^p12$", colnames(pre.tab))])

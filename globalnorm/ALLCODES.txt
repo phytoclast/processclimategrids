@@ -1,0 +1,597 @@
+Lists of the country, climatic parameter, and statistic codes and
+their corresponding descriptions.
+
+In this file, the table numbers refer to the tables as they appear
+in document NCDC9641.TXT.
+
+
+     Table 2.  Country identifier code assigned by the NCDC.
+     -----------------------------------------------------------
+      Code  Country or Territory Name      
+     -----------------------------------------------------------
+       AA   ARGENTINA (ANTARCTIC STATIONS)                       
+       AB   ALBANIA                                              
+       AC   CHILE (ANTARCTIC STATIONS)                           
+       AG   ARGENTINA                                            
+       AH   AFGHANISTAN, ISLAMIC STATE OF                        
+       AJ   AZERBAIJAN                                           
+       AL   ALGERIA                                              
+       AM   UNITED STATES OF AMERICA (ANTARCTIC STATIONS)        
+       AN   ANGOLA                                               
+       AP   JAPAN (ANTARCTIC STATIONS)                           
+       AR   ARMENIA                                              
+       AS   AUSTRALIA (ANTARCTIC STATIONS)                       
+       AU   AUSTRALIA                                            
+       B1   BAHRAIN                                              
+       B2   BELIZE                                               
+       B3   BENIN                                                
+       BA   BAHAMAS                                              
+       BG   GUYANA                                               
+       BH   BOSNIA AND HERZEGOVINA                               
+       BL   BELARUS                                              
+       BP   BRUNEI DARUSSALAM                                    
+       BU   BULGARIA                                             
+       BX   BELGIUM                                              
+       BZ   BRAZIL                                               
+       C1   COLOMBIA (SAN ANDRES AND PROVIDENCIA ISLANDS)        
+       CH   CHILE                                                
+       CN   CANADA                                               
+       CO   COLOMBIA                                             
+       CS   COSTA RICA
+       CU   CUBA                                                 
+       CV   CAPE VERDE                                           
+       CY   CYPRUS                                               
+       CZ   CZECH REPUBLIC                                       
+       D1   DJIBOUTI                                             
+       DL   GERMANY                                              
+       DN   DENMARK                                              
+       DO   DOMINICA                                             
+       DR   DOMINICAN REPUBLIC                                   
+       E1   ERITREA                                              
+       EJ   FIJI                                                 
+       EQ   ECUADOR                                              
+       ES   ESTONIA                                              
+       F1   FRANCE (ISLANDS IN THE INDIAN OCEAN)                 
+       FG   FRANCE (FRENCH DEPARTMENT OF GUYANA)                 
+       FI   FINLAND                                              
+       FM   MOROCCO                                              
+       FP   FRENCH POLYNESIA                                     
+       FR   FRANCE                                               
+       GA   GEORGIA                                              
+       GL   GREENLAND                                            
+       GN   GABON                                                
+       GP   FRANCE (CARIBBEAN ISLANDS, GUADELOUPE, MARTINIQUE)   
+       GR   GREECE                                               
+       GW   GUINEA                                               
+       HK   HONG KONG                                            
+       HO   HONDURAS                                             
+       HR   CROATIA                                              
+       HU   HUNGARY                                              
+       IE   IRELAND                                              
+       IL   ICELAND                                              
+       IN   INDIA                                                
+       IR   IRAN, ISLAMIC REPUBLIC OF                            
+       IS   ISRAEL                                               
+       IV   IVORY COAST                                          
+       IY   ITALY                                                
+       JP   JAPAN                                                
+       K1   KOREA, DEMOCRATIC PEOPLE'S REPUBLIC OF               
+       KM   CAMEROON                                             
+       KN   KENYA                                                
+       KO   KOREA, REPUBLIC OF                                   
+       KS   KAZAKSTAN (ASIA)                                     
+       KW   KUWAIT                                               
+       KY   KYRGYZ REPUBLIC                                      
+       KZ   KAZAKSTAN (EUROPE)                                   
+       LA   LAO PEOPLE'S DEMOCRATIC REPUBLIC                     
+       LB   LEBANON                                              
+       LU   LITHUANIA                                            
+       LV   LATVIA                                               
+       LX   LUXEMBOURG                                           
+       M1   MALI                                                 
+       MA   MAURITIUS                                            
+       MC   THE FORMER YUGOSLAV REPUBLIC OF MACEDONIA            
+       MD   MOLDOVA, REPUBLIC OF                                 
+       MG   MADAGASCAR                                           
+       ML   MALTA                                                
+       MM   MYANMAR                                              
+       MO   MONGOLIA                                             
+       MS   MALAYSIA                                             
+       MV   MALDIVES                                             
+       MW   MALAWI                                               
+       MX   MEXICO                                               
+       NA   NETHERLANDS ANTILLES AND ARUBA                       
+       NC   NEW CALEDONIA                                        
+       NG   NIGER
+       NI   NIGERIA                                              
+       NK   NICARAGUA                                            
+       NL   NETHERLANDS                                          
+       NO   NORWAY                                               
+       NZ   NEW ZEALAND                                          
+       OM   OMAN
+       OS   AUSTRIA                                              
+       PA   PORTUGAL (MADEIRA)                                   
+       PC   CHINA                                                
+       PH   PHILIPPINES                                          
+       PK   PAKISTAN                                             
+       PL   POLAND                                               
+       PO   PORTUGAL                                             
+       PR   PERU                                                 
+       PY   PARAGUAY                                             
+       QR   QATAR                                                
+       RA   RUSSIAN FEDERATION (ASIA)                            
+       RE   RUSSIAN FEDERATION (EUROPE)                          
+       RO   ROMANIA                                              
+       RW   RWANDA                                               
+       S1   SLOVAKIA                                             
+       S2   SLOVENIA                                             
+       S3   SRI LANKA                                            
+       SA   SPAIN (CANARY ISLANDS, CEUTA AND MELILLA)            
+       SC   SEYCHELLES                                           
+       SD   SAUDI ARABIA                                         
+       SG   SENEGAL                                              
+       SL   SIERRA LEONE                                         
+       SN   SWEDEN                                               
+       SO   SOLOMON ISLANDS                                      
+       SP   SPAIN                                                
+       SR   SINGAPORE                                            
+       SU   SUDAN                                                
+       SV   EL SALVADOR                                          
+       SW   SWITZERLAND                                          
+       SY   SYRIAN ARAB REPUBLIC                                 
+       TD   TRINIDAD AND TOBAGO                                  
+       TE   CHAD                                                 
+       TG   TOGO                                                 
+       TH   THAILAND                                             
+       TJ   JORDAN                                               
+       TK   TAJIKISTAN                                           
+       TN   TANZANIA, UNITED REPUBLIC OF                         
+       TS   TUNISIA                                              
+       TU   TURKEY                                               
+       TX   TURKMENISTAN                                         
+       U1   UNITED STATES OF AMERICA (PACIFIC ISLANDS)           
+       UA   SOUTH AFRICA                                         
+       UB   EGYPT                                                
+       UE   UNITED ARAB EMIRATES                                 
+       UK   UNITED KINGDOM OF GREAT BRITAIN & NORTHERN IRELAND   
+       UP   UKRAINE                                              
+       US   UNITED STATES OF AMERICA                             
+       UY   URUGUAY                                              
+       UZ   UZBEKISTAN                                           
+       VN   VENEZUELA                                            
+       YG   YUGOSLAVIA                                           
+       ZA   ZAMBIA                                               
+       ZI   ZIMBABWE                                             
+     -----------------------------------------------------------
+
+
+     Table 6.  Climatic element codes, element units (may also
+     depend on statistic, indicated by *), and element
+     description.
+     -----------------------------------------------------------
+      Code   Units  Description      
+     -----------------------------------------------------------
+       01    deg C  Dry Bulb Temperature
+       02    deg C  Maximum Dry Bulb Temperature
+       03    deg C  Minimum Dry Bulb Temperature
+       04    deg C  Wet Bulb Temperature
+       05    deg C  Dew Point Temperature
+       06       mm  Precipitation
+       08       mm  Maximum 24-Hour Precipitation
+       09       cm  Snowfall
+       10       cm  Snow Depth
+       11        %  Relative Humidity
+       12      hPa  Sea Level Pressure
+       13      hPa  Station Pressure
+       14      hPa  Vapor Pressure
+       15        *  Sunshine
+       16    m/sec  Wind Speed
+       17  degrees  Wind Direction
+       18 unitless  Wind Steadiness
+       19    deg C  Soil Temperature
+       20     okta  Sky Cover (Cloud Cover)
+       21       mm  Pan Evaporation
+       28        m  Height of 1000 hPa Geopotential Level
+       29        m  Height of 850 hPa Geopotential Level
+       30        m  Height of 700 hPa Geopotential level
+       32    MJ/m2  Net Solar Radiation
+       33    MJ/m2  Global Solar Radiation
+       34    MJ/m2  Diffuse Solar Radiation
+       35    MJ/m2  Reflected Solar Radiation
+       36    MJ/m2  Atmospheric Solar Radiation
+       37    MJ/m2  Terrestrial Solar Radiation
+       38       mm  Piche Evaporation
+       39       mm  Rainfall
+       40        *  Bright Sunshine
+       48        *  Calm Winds
+       49    count  Number Days with Sandstorm/Thick Dust/Haze
+       50    count  Number Days with Measurable Bright Sunshine
+       51    count  Number Days with Thunder
+       52    count  Number Days with Lightning
+       53    count  Number Days with Hail
+       54    count  Number Days with Rainfall GE Threshold
+       55    count  Number Days with Rain Showers
+       56    count  Number Days with Snowfall
+       57    count  Number Days with Snow on Ground
+       58    count  Number Days with Fog/Ice Fog
+       59    count  Number Days with Fog - Sky Obscured
+       60    count  Number Days with Fog - Sky Unobscured
+       61    count  Number Days with Haze/Smoke
+       62    count  Number Days with Dust
+       63    count  Number Days with Blowing Dust/Sand
+       65    count  Number Days with Visibility LE Threshold
+       73    count  Number Days with no Sunshine
+       74    count  Number Days with Dew
+       75    count  Number Days with Rime/Glaze Ice
+       76    count  Number Days with Air Frost
+       77    count  Number Days with Grass Frost
+       82    count  Number Days with Gale Force Winds
+       83    count  Number Days Maximum Temperature GE Threshold
+       84    count  Number Days Maximum Temperature LE Threshold
+       85    count  Number Days Minimum Temperature LE Threshold
+       86    count  Number Days Minimum Temperature GE Threshold
+       87    count  Number Days Mean Temperature GE Threshold
+       89    count  Number Days with Dust/Haze/Mist
+       90    count  Number Days Maximum Temperature GT Threshold
+       91    count  Number Days Maximum Temperature LT Threshold
+       92    count  Number Days Minimum Temperature GT Threshold
+       93    count  Number Days Minimum Temperature LT Threshold
+       94    count  Number Days with Snowfall GE Threshold
+       95    count  Number Days with Precipitation GE Threshold
+       96    count  Number Days with Snow Cover GE Threshold
+       97    count  Number Days with Freezing Rain/Drizzle
+       98    count  Number Days with Blowing Snow
+       AA    count  Number Days with Rain/Drizzle
+       AB    count  Number Days with Snow/Hail
+       AC    count  Number Days with Fog/Mist
+       AD    count  Number Days with Weather Phenomena
+       AE    count  Number Days with Ice Storm
+       AF    count  Number Days with Thick Haze
+       AG    count  Number Days with Rising Sand
+       AH    count  Number Days with Mist
+       AI    count  Number Days with Squalls
+       AJ    count  Number Days with Duststorm/Sandstorm
+       AK    count  Number Days with Sleet/Snow
+       BH    count  Number Days Mean Temperature LT Threshold
+       BJ    count  Number Days with Fog
+       BM    count  Number Days with Daily Maximum Wind Speed GE Threshold
+       BT    count  Number Days with Occurrence of Rain
+       BW    count  Number Days with Daily Maximum Snow Cover GE Threshold
+     -----------------------------------------------------------
+
+
+     Table 7.  Statistic codes and description.
+     -----------------------------------------------------------
+      Code Description      
+     -----------------------------------------------------------
+       01  Mean Value
+       02  Median Value
+       03  Standard Deviation of Mean Value
+       04  Maximum Value
+       05  Minimum Value
+       06  Mean Daily Value
+       08  Standard Deviation of Mean Daily Value
+       09  Mean Daily Maximum Value
+       10  Mean Daily Minimum Value
+       11  Maximum Daily Value
+       12  Date (Year/Day) of Occurrence of Maximum Daily Value
+       13  Minimum Daily Value
+       14  Date (Year/Day) of Occurrence of Minimum Daily Value
+       15  Mean Monthly Value
+       16  Standard Deviation of Mean Monthly Value
+       18  Mean Monthly Maximum Value
+       19  Mean Monthly Minimum Value
+       20  Minimum Monthly Value
+       21  Year of Occurrence of Minimum Monthly Value
+       22  First Quintile
+       23  Second Quintile
+       24  Third Quintile
+       25  Fourth Quintile
+       26  Maximum Monthly Value
+       27  Year of Occurrence of Maximum Monthly Value
+       30  Maximum Gust 
+       37  Percent of Possible
+       38  Frequency
+       41  Prevailing
+       42  Vector
+       44  Mean Number of Hours
+       45  Mean - Sunrise to Sunset
+       51  Mean on Last Day of Month
+       53  Percent of Daylight Hours
+       55  Year of Occurrence of Maximum Value
+       56  Year of Occurrence of Minimum Value
+       57  Mean Percent
+       58  First Quartile
+       59  Third Quartile
+       60  Standard Deviation of 3-Hourly Values
+       64  Total Count for Period of Record
+       69  Mean of Hourly Observations
+       70  Mean of Observations at 0000 LST
+       71  Mean of Observations at 0100 LST
+       72  Mean of Observations at 0200 LST
+       73  Mean of Observations at 0300 LST
+       74  Mean of Observations at 0400 LST
+       75  Mean of Observations at 0500 LST
+       76  Mean of Observations at 0600 LST
+       77  Mean of Observations at 0700 LST
+       78  Mean of Observations at 0800 LST
+       79  Mean of Observations at 0900 LST
+       80  Mean of Observations at 1000 LST
+       81  Mean of Observations at 1100 LST
+       82  Mean of Observations at 1200 LST
+       83  Mean of Observations at 1300 LST
+       84  Mean of Observations at 1400 LST
+       85  Mean of Observations at 1500 LST
+       86  Mean of Observations at 1600 LST
+       87  Mean of Observations at 1700 LST
+       88  Mean of Observations at 1800 LST
+       89  Mean of Observations at 1900 LST
+       90  Mean of Observations at 2000 LST
+       91  Mean of Observations at 2100 LST
+       92  Mean of Observations at 2200 LST
+       93  Mean of Observations at 2300 LST
+       94  Mean of 3-Hourly Observations
+       97  Mean of Synoptic Observations
+       98  Number of Years used to Calculate Normal
+       AF  Afternoon Average
+       AM  Daytime Average
+       MO  Morning Average
+       PM  Nighttime Average
+     -----------------------------------------------------------
+
+
+     Table 10.  Countries and Territories submitting normals
+     data, and their country code, arranged by name.
+     -----------------------------------------------------------
+      Code  Country or Territory Name      
+     -----------------------------------------------------------
+       AH   AFGHANISTAN, ISLAMIC STATE OF    
+       AB   ALBANIA      
+       AL   ALGERIA      
+       AN   ANGOLA       
+       AG   ARGENTINA    
+       AA   ARGENTINA (ANTARCTIC STATIONS)   
+       AR   ARMENIA      
+       AU   AUSTRALIA    
+       AS   AUSTRALIA (ANTARCTIC STATIONS)   
+       OS   AUSTRIA      
+       AJ   AZERBAIJAN   
+       BA   BAHAMAS      
+       B1   BAHRAIN      
+       BL   BELARUS      
+       BX   BELGIUM      
+       B2   BELIZE       
+       B3   BENIN        
+       BH   BOSNIA AND HERZEGOVINA 
+       BZ   BRAZIL       
+       BP   BRUNEI DARUSSALAM      
+       BU   BULGARIA     
+       KM   CAMEROON     
+       CN   CANADA       
+       CV   CAPE VERDE   
+       TE   CHAD         
+       CH   CHILE        
+       AC   CHILE (ANTARCTIC STATIONS)       
+       PC   CHINA        
+       CO   COLOMBIA     
+       C1   COLOMBIA (SAN ANDRES AND PROVIDENCIA ISLANDS)        
+       CS   COSTA RICA   
+       HR   CROATIA      
+       CU   CUBA         
+       CY   CYPRUS       
+       CZ   CZECH REPUBLIC         
+       DN   DENMARK      
+       D1   DJIBOUTI     
+       DO   DOMINICA     
+       DR   DOMINICAN REPUBLIC     
+       EQ   ECUADOR      
+       UB   EGYPT        
+       SV   EL SALVADOR  
+       E1   ERITREA      
+       ES   ESTONIA      
+       EJ   FIJI         
+       FI   FINLAND      
+       FR   FRANCE       
+       GP   FRANCE (CARIBBEAN ISLANDS, GUADELOUPE, MARTINIQUE)   
+       FG   FRANCE (FRENCH DEPARTMENT OF GUYANA)       
+       F1   FRANCE (ISLANDS IN THE INDIAN OCEAN)       
+       FP   FRENCH POLYNESIA       
+       GN   GABON        
+       GA   GEORGIA      
+       DL   GERMANY      
+       GR   GREECE       
+       GL   GREENLAND    
+       GW   GUINEA       
+       BG   GUYANA       
+       HO   HONDURAS     
+       HK   HONG KONG    
+       HU   HUNGARY      
+       IL   ICELAND      
+       IN   INDIA        
+       IR   IRAN, ISLAMIC REPUBLIC OF        
+       IE   IRELAND      
+       IS   ISRAEL       
+       IY   ITALY        
+       IV   IVORY COAST  
+       JP   JAPAN        
+       AP   JAPAN (ANTARCTIC STATIONS)       
+       TJ   JORDAN       
+       KS   KAZAKSTAN (ASIA)       
+       KZ   KAZAKSTAN (EUROPE)     
+       KN   KENYA        
+       K1   KOREA, DEMOCRATIC PEOPLE'S REPUBLIC OF     
+       KO   KOREA, REPUBLIC OF     
+       KW   KUWAIT       
+       KY   KYRGYZ REPUBLIC        
+       LA   LAO PEOPLE'S DEMOCRATIC REPUBLIC 
+       LV   LATVIA       
+       LB   LEBANON      
+       LU   LITHUANIA    
+       LX   LUXEMBOURG   
+       MG   MADAGASCAR   
+       MW   MALAWI       
+       MS   MALAYSIA     
+       MV   MALDIVES     
+       M1   MALI         
+       ML   MALTA        
+       MA   MAURITIUS    
+       MX   MEXICO       
+       MD   MOLDOVA, REPUBLIC OF   
+       MO   MONGOLIA     
+       FM   MOROCCO      
+       MM   MYANMAR      
+       NL   NETHERLANDS  
+       NA   NETHERLANDS ANTILLES AND ARUBA   
+       NC   NEW CALEDONIA
+       NZ   NEW ZEALAND  
+       NK   NICARAGUA    
+       NG   NIGER
+       NI   NIGERIA      
+       NO   NORWAY       
+       OM   OMAN
+       PK   PAKISTAN     
+       PY   PARAGUAY     
+       PR   PERU         
+       PH   PHILIPPINES  
+       PL   POLAND       
+       PO   PORTUGAL     
+       PA   PORTUGAL (MADEIRA)     
+       QR   QATAR        
+       RO   ROMANIA      
+       RA   RUSSIAN FEDERATION (ASIA)        
+       RE   RUSSIAN FEDERATION (EUROPE)      
+       RW   RWANDA       
+       SD   SAUDI ARABIA 
+       SG   SENEGAL      
+       SC   SEYCHELLES   
+       SL   SIERRA LEONE 
+       SR   SINGAPORE    
+       S1   SLOVAKIA     
+       S2   SLOVENIA     
+       SO   SOLOMON ISLANDS        
+       UA   SOUTH AFRICA 
+       SP   SPAIN        
+       SA   SPAIN (CANARY ISLANDS, CEUTA AND MELILLA)  
+       S3   SRI LANKA    
+       SU   SUDAN        
+       SN   SWEDEN       
+       SW   SWITZERLAND  
+       SY   SYRIAN ARAB REPUBLIC   
+       TK   TAJIKISTAN   
+       TN   TANZANIA, UNITED REPUBLIC OF     
+       TH   THAILAND     
+       MC   THE FORMER YUGOSLAV REPUBLIC OF MACEDONIA  
+       TG   TOGO         
+       TD   TRINIDAD AND TOBAGO    
+       TS   TUNISIA      
+       TU   TURKEY       
+       TX   TURKMENISTAN 
+       UP   UKRAINE      
+       UE   UNITED ARAB EMIRATES   
+       UK   UNITED KINGDOM OF GREAT BRITAIN & NORTHERN IRELAND   
+       US   UNITED STATES OF AMERICA         
+       AM   UNITED STATES OF AMERICA (ANTARCTIC STATIONS)        
+       U1   UNITED STATES OF AMERICA (PACIFIC ISLANDS) 
+       UY   URUGUAY      
+       UZ   UZBEKISTAN   
+       VN   VENEZUELA    
+       YG   YUGOSLAVIA   
+       ZA   ZAMBIA       
+       ZI   ZIMBABWE     
+     -----------------------------------------------------------
+
+
+     Table 11.  Climatic elements and element codes, arranged by
+     element name.
+     -----------------------------------------------------------
+     Code Name      
+     -----------------------------------------------------------
+       36 Atmospheric Solar Radiation
+       40 Bright Sunshine  
+       48 Calm Winds       
+       05 Dew Point Temperature      
+       34 Diffuse Solar Radiation    
+       01 Dry Bulb Temperature  
+       33 Global Solar Radiation     
+       28 Height of 1000 hPa Geopotential Level
+       30 Height of 700 hPa Geopotential level 
+       29 Height of 850 hPa Geopotential Level 
+       08 Maximum 24-Hour Precipitation        
+       02 Maximum Dry Bulb Temperature         
+       03 Minimum Dry Bulb Temperature         
+       32 Net Solar Radiation        
+       83 Number Days Maximum Temperature GE Threshold   
+       90 Number Days Maximum Temperature GT Threshold   
+       84 Number Days Maximum Temperature LE Threshold   
+       91 Number Days Maximum Temperature LT Threshold   
+       87 Number Days Mean Temperature GE Threshold      
+       BH Number Days Mean Temperature LT Threshold      
+       86 Number Days Minimum Temperature GE Threshold   
+       92 Number Days Minimum Temperature GT Threshold   
+       85 Number Days Minimum Temperature LE Threshold   
+       93 Number Days Minimum Temperature LT Threshold   
+       76 Number Days with Air Frost 
+       63 Number Days with Blowing Dust/Sand   
+       98 Number Days with Blowing Snow        
+       BW Number Days with Daily Maximum Snow Cover GE Threshold
+       BM Number Days with Daily Maximum Wind Speed GE Threshold
+       74 Number Days with Dew       
+       62 Number Days with Dust      
+       89 Number Days with Dust/Haze/Mist      
+       AJ Number Days with Duststorm/Sandstorm 
+       BJ Number Days with Fog       
+       59 Number Days with Fog - Sky Obscured  
+       60 Number Days with Fog - Sky Unobscured
+       58 Number Days with Fog/Ice Fog         
+       AC Number Days with Fog/Mist  
+       97 Number Days with Freezing Rain/Drizzle         
+       82 Number Days with Gale Force Winds    
+       77 Number Days with Grass Frost         
+       53 Number Days with Hail      
+       61 Number Days with Haze/Smoke
+       AE Number Days with Ice Storm  
+       52 Number Days with Lightning 
+       50 Number Days with Measurable Bright Sunshine   
+       AH Number Days with Mist      
+       BT Number Days with Occurrence of Rain  
+       95 Number Days with Precipitation GE Threshold    
+       AA Number Days with Rain/Drizzle        
+       54 Number Days with Rainfall GE Threshold         
+       55 Number Days with Rain Showers         
+       75 Number Days with Rime/Glaze Ice      
+       AG Number Days with Rising Sand         
+       49 Number Days with Sandstorm/Thick Dust/Haze     
+       AK Number Days with Sleet/Snow
+       56 Number Days with Snowfall      
+       57 Number Days with Snow on Ground      
+       AB Number Days with Snow/Hail 
+       96 Number Days with Snow Cover GE Threshold        
+       94 Number Days with Snowfall GE Threshold         
+       AI Number Days with Squalls   
+       AF Number Days with Thick Haze
+       51 Number Days with Thunder   
+       65 Number Days with Visibility LE Threshold       
+       AD Number Days with Weather Phenomena   
+       73 Number Days with no Sunshine         
+       21 Pan Evaporation  
+       38 Piche Evaporation
+       06 Precipitation      
+       39 Rainfall         
+       35 Reflected Solar Radiation  
+       11 Relative Humidity
+       12 Sea Level Pressure         
+       20 Sky Cover (Cloud Cover)    
+       10 Snow Depth       
+       09 Snowfall         
+       19 Soil Temperature 
+       13 Station Pressure 
+       15 Sunshine         
+       37 Terrestial Solar Radiation 
+       14 Vapor Pressure   
+       04 Wet Bulb Temperature       
+       17 Wind Direction   
+       16 Wind Speed       
+       18 Wind Steadiness  
+     -----------------------------------------------------------
+
+
