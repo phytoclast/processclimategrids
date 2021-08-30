@@ -45,7 +45,7 @@ stn$LONM <- substring(stn$V1, 44,45)
 stn$LONA <- substring(stn$V1, 46,46)
 stn$ELEVFT <- as.numeric(substring(stn$V1, 50,54))
 stn$Elev <- round(stn$ELEVFT*.3048,1)
-stn$Lat <- (as.numeric(stn$LATD)+as.numeric(stn$LATD)/60) * ifelse(stn$LATA %in% 'N',1,-1)
+stn$Lat <- (as.numeric(stn$LATD)+as.numeric(stn$LATM)/60) * ifelse(stn$LATA %in% 'N',1,-1)
 stn$Lon <- (as.numeric(stn$LOND)+as.numeric(stn$LONM)/60) * ifelse(stn$LONA %in% 'E',1,-1)
 
 stn <- stn[,c('ID', 'NAME', 'Lat', 'Lon', 'Elev')]
@@ -116,3 +116,30 @@ colnames(tab.g2080) <- c('ID','NAME','Lat','Lon','Elev','Period',
                          'p01','p02','p03','p04','p05','p06','p07','p08','p09','p10','p11','p12')
 
 common.tab <- rbind(tab.1990, tab.2010, tab.g1990, tab.g2080)
+
+clim.tab <- common.tab
+clim.tab$P1990 <- ifelse(clim.tab$Period %in% '1990',1,0)
+clim.tab$G1990 <- ifelse(clim.tab$Period %in% 'Grid1990',1,0)
+clim.tab$G2080 <- ifelse(clim.tab$Period %in% 'Grid2080',1,0)
+clim.tab$P2010 <- ifelse(clim.tab$Period %in% '2010',1,0)
+station <- subset(common.tab, NAME %in% 'MOUNT WASHINGTON')
+
+sLat =   station$Lat[1]  
+sLon =   station$Lon[1]  
+sElev =   station$Elev[1]  
+shape=2
+localzone = 20
+cutoff = 25
+clim.tab$altdifwt <- (clim.tab$Elev - sElev)^2/((clim.tab$Elev - sElev)^2 + 500^2)
+clim.tab$dist <- (((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5
+clim.tab$dist <- (((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5
+clim.tab$wt <- (localzone/(clim.tab$dist+localzone))^shape*100
+clim.tab$cutoff <- cutoff + cutoff*clim.tab$altdifwt/200
+clim.tab$wt <- ifelse(clim.tab$dist > clim.tab$cutoff, 0, clim.tab$wt)
+colrange = grep("^th01$", colnames(clim.tab)):grep("^th12$", colnames(clim.tab))
+clim.tab$th.mean <- apply(clim.tab[,colrange], MARGIN = 1, FUN='mean')
+colrange = grep("^tl01$", colnames(clim.tab)):grep("^tl12$", colnames(clim.tab))
+clim.tab$tl.mean <- apply(clim.tab[,colrange], MARGIN = 1, FUN='mean')
+clim.tab$t.mean <- (clim.tab$th.mean+clim.tab$tl.mean)/2
+clim.tab.s <- subset(clim.tab, Period %in% c('1990', 'Grid1990', '2010'))
+summary(lm(t.mean ~ Elev + Lat+ Lon + G1990 + P2010, data = clim.tab.s, weights = clim.tab.s$wt))
