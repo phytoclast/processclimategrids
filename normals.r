@@ -122,24 +122,47 @@ clim.tab$P1990 <- ifelse(clim.tab$Period %in% '1990',1,0)
 clim.tab$G1990 <- ifelse(clim.tab$Period %in% 'Grid1990',1,0)
 clim.tab$G2080 <- ifelse(clim.tab$Period %in% 'Grid2080',1,0)
 clim.tab$P2010 <- ifelse(clim.tab$Period %in% '2010',1,0)
-station <- subset(common.tab, NAME %in% 'MOUNT WASHINGTON')
+station <- subset(common.tab, NAME %in% 'MT WASHINGTON')
 
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
 sElev =   station$Elev[1]  
 shape=2
-localzone = 20
-cutoff = 25
+localzone = 10
+cutoff = 500
 clim.tab$altdifwt <- (clim.tab$Elev - sElev)^2/((clim.tab$Elev - sElev)^2 + 500^2)
 clim.tab$dist <- (((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5
-clim.tab$dist <- (((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5
-clim.tab$wt <- (localzone/(clim.tab$dist+localzone))^shape*100
+#clim.tab$wt <- ifelse(clim.tab$Period %in% c('1990', '2010'), clim.tab$wt*10,clim.tab$wt)
 clim.tab$cutoff <- cutoff + cutoff*clim.tab$altdifwt/200
-clim.tab$wt <- ifelse(clim.tab$dist > clim.tab$cutoff, 0, clim.tab$wt)
+
 colrange = grep("^th01$", colnames(clim.tab)):grep("^th12$", colnames(clim.tab))
 clim.tab$th.mean <- apply(clim.tab[,colrange], MARGIN = 1, FUN='mean')
 colrange = grep("^tl01$", colnames(clim.tab)):grep("^tl12$", colnames(clim.tab))
 clim.tab$tl.mean <- apply(clim.tab[,colrange], MARGIN = 1, FUN='mean')
 clim.tab$t.mean <- (clim.tab$th.mean+clim.tab$tl.mean)/2
-clim.tab.s <- subset(clim.tab, Period %in% c('1990', 'Grid1990', '2010'))
-summary(lm(t.mean ~ Elev + Lat+ Lon + G1990 + P2010, data = clim.tab.s, weights = clim.tab.s$wt))
+clim.tab.s <- subset(clim.tab, Period %in% c('1990', 'Grid1990', '2010','Grid2080'))
+clim.tab.s$rank <- rank(clim.tab.s$dist)
+clim.tab.s$srank <- NA
+clim.tab.s[clim.tab.s$Period %in% '1990',]$srank <- rank(clim.tab.s[clim.tab.s$Period %in% '1990',]$dist)
+clim.tab.s[clim.tab.s$Period %in% '2010',]$srank <- rank(clim.tab.s[clim.tab.s$Period %in% '2010',]$dist)
+clim.tab.s[clim.tab.s$Period %in% 'Grid1990',]$srank <- rank(clim.tab.s[clim.tab.s$Period %in% 'Grid1990',]$dist)
+clim.tab.s[clim.tab.s$Period %in% 'Grid2080',]$srank <- rank(clim.tab.s[clim.tab.s$Period %in% 'Grid2080',]$dist)
+clim.tab.s$wt <- (localzone/(clim.tab.s$dist+localzone))^shape*100
+clim.tab.s$wt <- ifelse(clim.tab.s$rank > 16 & clim.tab.s$srank >3, 0, clim.tab.s$wt)
+model <-lm(t.mean ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
+
+G1990 = model$coefficients[5]
+G2080 = model$coefficients[6]
+P2010 = model$coefficients[7]
+#1990 normals (run against the 2010 and grid data)
+t.mean = clim.tab.s[clim.tab.s$dist < 1,]$t.mean
+t.mean.new = clim.tab.s[clim.tab.s$dist < 1,]$G1990*-G1990 + 
+  clim.tab.s[clim.tab.s$dist < 1,]$G2080*-G1990 + 
+  clim.tab.s[clim.tab.s$dist < 1,]$P2010*-P2010 +t.mean
+
+#2010 normals (remove future)
+t.mean = clim.tab.s[clim.tab.s$dist < 1,]$t.mean
+t.mean.new = clim.tab.s[clim.tab.s$dist < 1,]$G1990*-G1990 + 
+  clim.tab.s[clim.tab.s$dist < 1,]$G2080*-G1990 + 
+  clim.tab.s[clim.tab.s$dist < 1,]$P2010*-P2010 +t.mean+P2010
+  
