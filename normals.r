@@ -8,6 +8,14 @@ ftoc <- function(f){
 inchtomm <- function(i){
   m = round((as.numeric(as.character(i))/100)*25.4,1)
   return(m)  }
+p.trans <-  function(p){
+  p1 = log2(pmax(0,p+0.0001)+100)
+  return(p1)}
+
+p.vert <- function(p1){
+  p = pmax(0,(2^(p1)-100)-0.0001)
+  return(p)}
+
 
 #1990
 pnorm <- read.table('globalnorm/MEANPRCP.NML', colClasses = "character")
@@ -118,12 +126,16 @@ colnames(tab.g2080) <- c('ID','NAME','Lat','Lon','Elev','Period',
 common.tab <- rbind(tab.1990, tab.2010, tab.g1990, tab.g2080)
 
 clim.tab <- common.tab
+col.p = grep("^p01$", colnames(clim.tab)):grep("^p12$", colnames(clim.tab))
+clim.tab[,col.p] <- p.trans(clim.tab[,col.p])#transform precipitation
+
 clim.tab$P1990 <- ifelse(clim.tab$Period %in% '1990',1,0)
 clim.tab$G1990 <- ifelse(clim.tab$Period %in% 'Grid1990',1,0)
 clim.tab$G2080 <- ifelse(clim.tab$Period %in% 'Grid2080',1,0)
 clim.tab$P2010 <- ifelse(clim.tab$Period %in% '2010',1,0)
 station <- subset(common.tab, NAME %in% 'MT WASHINGTON')
-
+stationlist <- unique(subset(clim.tab, Period %in% c('2010', 'Grid1990')))
+station <- stationlist[500,]
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
 sElev =   station$Elev[1]  
@@ -148,21 +160,49 @@ clim.tab.s[clim.tab.s$Period %in% '2010',]$srank <- rank(clim.tab.s[clim.tab.s$P
 clim.tab.s[clim.tab.s$Period %in% 'Grid1990',]$srank <- rank(clim.tab.s[clim.tab.s$Period %in% 'Grid1990',]$dist)
 clim.tab.s[clim.tab.s$Period %in% 'Grid2080',]$srank <- rank(clim.tab.s[clim.tab.s$Period %in% 'Grid2080',]$dist)
 clim.tab.s$wt <- (localzone/(clim.tab.s$dist+localzone))^shape*100
-clim.tab.s$wt <- ifelse(clim.tab.s$rank > 16 & clim.tab.s$srank >3, 0, clim.tab.s$wt)
-model <-lm(t.mean ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
+clim.tab.s <- subset(clim.tab.s, rank <= 16 | srank <= 3)
 
-G1990 = model$coefficients[5]
-G2080 = model$coefficients[6]
-P2010 = model$coefficients[7]
-#1990 normals (run against the 2010 and grid data)
-t.mean = clim.tab.s[clim.tab.s$dist < 1,]$t.mean
-t.mean.new = clim.tab.s[clim.tab.s$dist < 1,]$G1990*-G1990 + 
-  clim.tab.s[clim.tab.s$dist < 1,]$G2080*-G1990 + 
-  clim.tab.s[clim.tab.s$dist < 1,]$P2010*-P2010 +t.mean
+col.th = grep("^th01$", colnames(clim.tab.s)):grep("^th12$", colnames(clim.tab.s))
+col.tl = grep("^tl01$", colnames(clim.tab.s)):grep("^tl12$", colnames(clim.tab.s))
+col.p = grep("^p01$", colnames(clim.tab.s)):grep("^p12$", colnames(clim.tab.s))
+col.th.s = grep("^th01$", colnames(station)):grep("^th12$", colnames(station))
+col.tl.s = grep("^tl01$", colnames(station)):grep("^tl12$", colnames(station))
+col.p.s = grep("^p01$", colnames(station)):grep("^p12$", colnames(station))
 
-#2010 normals (remove future)
-t.mean = clim.tab.s[clim.tab.s$dist < 1,]$t.mean
-t.mean.new = clim.tab.s[clim.tab.s$dist < 1,]$G1990*-G1990 + 
-  clim.tab.s[clim.tab.s$dist < 1,]$G2080*-G1990 + 
-  clim.tab.s[clim.tab.s$dist < 1,]$P2010*-P2010 +t.mean+P2010
-  
+model.th <-lm(clim.tab.s[,col.th[7]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
+model.tl <-lm(clim.tab.s[,col.tl[7]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
+model.p <-lm(clim.tab.s[,col.p[7]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
+
+G1990.th = model.th$coefficients[5]
+G2080.th = model.th$coefficients[6]
+P2010.th = model.th$coefficients[7]
+G1990.tl = model.tl$coefficients[5]
+G2080.tl = model.tl$coefficients[6]
+P2010.tl = model.tl$coefficients[7]
+G1990.p = model.p$coefficients[5]
+G2080.p = model.p$coefficients[6]
+P2010.p = model.p$coefficients[7]
+#New Normals
+th = station[,col.th.s[7]]
+th.1990 = station$G1990*-G1990.th + 
+  station$P2010*-P2010.th +th
+th.2010 = station$G1990*-G1990.th + 
+  station$P2010*-P2010.th +th+P2010.th
+th.2080 = station$G1990*-G1990.th + 
+  station$P2010*-P2010.th +th+G2080.th-G1990.th
+
+tl = station[,col.tl.s[7]]
+tl.1990 = station$G1990*-G1990.tl + 
+  station$P2010*-P2010.tl +tl
+tl.2010 = station$G1990*-G1990.tl + 
+  station$P2010*-P2010.tl +tl+P2010.tl
+tl.2080 = station$G1990*-G1990.tl + 
+  station$P2010*-P2010.tl +tl+G2080.tl-G1990.tl
+
+p = station[,col.p.s[7]]
+p.1990 = station$G1990*-G1990.p + 
+  station$P2010*-P2010.p +p
+p.2010 = station$G1990*-G1990.p + 
+  station$P2010*-P2010.p +p+P2010.p
+p.2080 = station$G1990*-G1990.p + 
+  station$P2010*-P2010.p +p+G2080.p-G1990.p
