@@ -168,10 +168,10 @@ col.p = grep("^p01$", colnames(clim.tab.s)):grep("^p12$", colnames(clim.tab.s))
 col.th.s = grep("^th01$", colnames(station)):grep("^th12$", colnames(station))
 col.tl.s = grep("^tl01$", colnames(station)):grep("^tl12$", colnames(station))
 col.p.s = grep("^p01$", colnames(station)):grep("^p12$", colnames(station))
-
-model.th <-lm(clim.tab.s[,col.th[7]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
-model.tl <-lm(clim.tab.s[,col.tl[7]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
-model.p <-lm(clim.tab.s[,col.p[7]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
+i=1
+model.th <-lm(clim.tab.s[,col.th[i]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
+model.tl <-lm(clim.tab.s[,col.tl[i]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
+model.p <-lm(clim.tab.s[,col.p[i]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
 
 G1990.th = model.th$coefficients[5]
 G2080.th = model.th$coefficients[6]
@@ -183,7 +183,7 @@ G1990.p = model.p$coefficients[5]
 G2080.p = model.p$coefficients[6]
 P2010.p = model.p$coefficients[7]
 #New Normals
-th = station[,col.th.s[7]]
+th = station[,col.th.s[i]]
 th.1990 = station$G1990*-G1990.th + 
   station$P2010*-P2010.th +th
 th.2010 = station$G1990*-G1990.th + 
@@ -191,7 +191,7 @@ th.2010 = station$G1990*-G1990.th +
 th.2080 = station$G1990*-G1990.th + 
   station$P2010*-P2010.th +th+G2080.th-G1990.th
 
-tl = station[,col.tl.s[7]]
+tl = station[,col.tl.s[i]]
 tl.1990 = station$G1990*-G1990.tl + 
   station$P2010*-P2010.tl +tl
 tl.2010 = station$G1990*-G1990.tl + 
@@ -199,10 +199,12 @@ tl.2010 = station$G1990*-G1990.tl +
 tl.2080 = station$G1990*-G1990.tl + 
   station$P2010*-P2010.tl +tl+G2080.tl-G1990.tl
 
-p = station[,col.p.s[7]]
-p.1990 = station$G1990*-G1990.p + 
-  station$P2010*-P2010.p +p
-p.2010 = station$G1990*-G1990.p + 
-  station$P2010*-P2010.p +p+P2010.p
-p.2080 = station$G1990*-G1990.p + 
-  station$P2010*-P2010.p +p+G2080.p-G1990.p
+p = station[,col.p.s[i]]
+p.1990 = p.vert(station$G1990*-G1990.p + 
+  station$P2010*-P2010.p +p)
+p.2010 = p.vert(station$G1990*-G1990.p + 
+  station$P2010*-P2010.p +p+P2010.p)
+p.2080 = p.vert(station$G1990*-G1990.p + 
+  station$P2010*-P2010.p +p+G2080.p-G1990.p)
+
+
