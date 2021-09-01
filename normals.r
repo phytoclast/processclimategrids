@@ -135,7 +135,11 @@ clim.tab$G2080 <- ifelse(clim.tab$Period %in% 'Grid2080',1,0)
 clim.tab$P2010 <- ifelse(clim.tab$Period %in% '2010',1,0)
 station <- subset(common.tab, NAME %in% 'MT WASHINGTON')
 stationlist <- unique(subset(clim.tab, Period %in% c('2010', 'Grid1990')))
-station <- stationlist[500,]
+
+
+
+for(k in 1:nrow(stationlist)){
+station <- stationlist[k,]
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
 sElev =   station$Elev[1]  
@@ -144,7 +148,6 @@ localzone = 10
 cutoff = 500
 clim.tab$altdifwt <- (clim.tab$Elev - sElev)^2/((clim.tab$Elev - sElev)^2 + 500^2)
 clim.tab$dist <- (((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5
-#clim.tab$wt <- ifelse(clim.tab$Period %in% c('1990', '2010'), clim.tab$wt*10,clim.tab$wt)
 clim.tab$cutoff <- cutoff + cutoff*clim.tab$altdifwt/200
 
 colrange = grep("^th01$", colnames(clim.tab)):grep("^th12$", colnames(clim.tab))
@@ -168,7 +171,8 @@ col.p = grep("^p01$", colnames(clim.tab.s)):grep("^p12$", colnames(clim.tab.s))
 col.th.s = grep("^th01$", colnames(station)):grep("^th12$", colnames(station))
 col.tl.s = grep("^tl01$", colnames(station)):grep("^tl12$", colnames(station))
 col.p.s = grep("^p01$", colnames(station)):grep("^p12$", colnames(station))
-i=1
+
+for(i in 1:12){
 model.th <-lm(clim.tab.s[,col.th[i]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
 model.tl <-lm(clim.tab.s[,col.tl[i]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
 model.p <-lm(clim.tab.s[,col.p[i]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
@@ -207,4 +211,33 @@ p.2010 = p.vert(station$G1990*-G1990.p +
 p.2080 = p.vert(station$G1990*-G1990.p + 
   station$P2010*-P2010.p +p+G2080.p-G1990.p)
 
-
+row.th0 <- data.frame(rbind(th.1990, th.2010, th.2080))
+colnames(row.th0) <- paste0('th', month[i])
+if(i==1){
+  row.th <- cbind(list(Period = c('1990','2010','2080')),row.th0)}else{
+    row.th <- cbind(row.th,row.th0)
+  }
+row.tl0 <- data.frame(rbind(tl.1990, tl.2010, tl.2080))
+colnames(row.tl0) <- paste0('tl', month[i])
+if(i==1){
+  row.tl <- row.tl0}else{
+    row.tl <- cbind(row.tl,row.tl0)
+  }
+row.p0 <- data.frame(rbind(p.1990, p.2010, p.2080))
+colnames(row.p0) <- paste0('p', month[i])
+if(i==1){
+  row.p <- row.p0}else{
+    row.p <- cbind(row.p,row.p0)
+  }
+}
+rows <- cbind(row.th, row.tl, row.p)
+rows$NAME <- station$NAME; rows$Lat <-  station$Lat; rows$Lon <- station$Lon; rows$Elev <- station$Elev
+rows <- rows[,c("NAME", "Lat",  "Lon",  "Elev", "Period", "th01", "th02", "th03", "th04", "th05", "th06", "th07", "th08", "th09", "th10", "th11", "th12", 
+                    "tl01", "tl02","tl03", "tl04", "tl05", "tl06", "tl07", "tl08", "tl09", "tl10", "tl11", "tl12",
+                    "p01",  "p02",  "p03",  "p04",  "p05", "p06",  "p07",  "p08",  "p09",  "p10",  "p11",  "p12")]
+if(k==1){
+  harmonized <- rows }else{
+    harmonized <- rbind(harmonized,rows)
+    }
+}
+saveRDS(harmonized, 'output/harmonized.RDS')
