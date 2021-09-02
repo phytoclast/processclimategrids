@@ -136,9 +136,29 @@ clim.tab$P2010 <- ifelse(clim.tab$Period %in% '2010',1,0)
 station <- subset(common.tab, NAME %in% 'MT WASHINGTON')
 stationlist <- unique(subset(clim.tab, Period %in% c('2010', 'Grid1990')))
 
+#set priority for stations paired with different normal periods----
+list.1990 <- unique(subset(clim.tab, Period %in% '1990', select = c(Lat, Lon)))
+list.2010 <- unique(subset(clim.tab, Period %in% '2010', select = c(Lat, Lon)))
+list.gridded <- unique(subset(clim.tab, Period %in% c('Grid1990', 'Grid2080'), select = c(Lat, Lon)))
+
+clim.tab$adj <- NA
+
+for (i in 1:nrow(clim.tab)){#i=1
+  sLat = clim.tab$Lat[i]
+  sLon = clim.tab$Lon[i]
+  if(clim.tab[i,]$Period %in% '1990'){
+    clim.tab[i,]$adj <- min((((list.2010$Lat - sLat)*10000/90)^2 + ((list.2010$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5)
+}else{
+  if(clim.tab$Period[i] %in% '2010'){
+    clim.tab[i,]$adj <- min((((list.1990$Lat - sLat)*10000/90)^2 + ((list.1990$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5)
+}else{
+  clim.tab[i,]$adj <- mean(min((((list.2010$Lat - sLat)*10000/90)^2 + ((list.2010$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5), min((((list.1990$Lat - sLat)*10000/90)^2 + ((list.1990$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5))
+}}}
 
 
-for(k in 1:nrow(stationlist)){
+
+
+for(k in 1:nrow(stationlist)){#k=1
 station <- stationlist[k,]
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
@@ -147,7 +167,7 @@ shape=2
 localzone = 10
 cutoff = 500
 clim.tab$altdifwt <- (clim.tab$Elev - sElev)^2/((clim.tab$Elev - sElev)^2 + 500^2)
-clim.tab$dist <- (((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5
+clim.tab$dist <- (((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5+(clim.tab$adj)
 clim.tab$cutoff <- cutoff + cutoff*clim.tab$altdifwt/200
 
 colrange = grep("^th01$", colnames(clim.tab)):grep("^th12$", colnames(clim.tab))
@@ -172,7 +192,7 @@ col.th.s = grep("^th01$", colnames(station)):grep("^th12$", colnames(station))
 col.tl.s = grep("^tl01$", colnames(station)):grep("^tl12$", colnames(station))
 col.p.s = grep("^p01$", colnames(station)):grep("^p12$", colnames(station))
 
-for(i in 1:12){
+for(i in 1:12){#i=1
 model.th <-lm(clim.tab.s[,col.th[i]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
 model.tl <-lm(clim.tab.s[,col.tl[i]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
 model.p <-lm(clim.tab.s[,col.p[i]] ~ Elev + Lat+ Lon + G1990 + G2080 + P2010, data = clim.tab.s, weights = clim.tab.s$wt)
