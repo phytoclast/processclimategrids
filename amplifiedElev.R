@@ -33,6 +33,14 @@ ElevAmp <- ElevAmp1 * ElevBin + ElevAmp2 * (ElevBin-1)*-1
 writeRaster(ElevAmp, 'output/ElevAmp.tif', overwrite =T)
 #writeRaster(ElevBin, 'output/ElevBin.tif')
 #Temperatures 
+
+library(terra)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# ----
+
+Elev5km = rast('wc2.1_2.5m_elev/wc2.1_2.5m_elev.tif')
+
 Egrid <- aggregate(Elev5km, fact=5, fun='mean',na.rm=TRUE)
 Egrid <- as.data.frame(Egrid, xy=T); colnames(Egrid) <- c('x','y','z'); Egrid <- subset(Egrid, !is.nan(z))
 xy = as.matrix(as.data.frame(list(x=Egrid$x, y=Egrid$y)))
@@ -42,7 +50,7 @@ xy <- vect(xy, crs="+proj=longlat +datum=WGS84")
 xy.Elev = extract(rast(paste0('wc2.1_2.5m_elev/wc2.1_2.5m_elev.tif')), xy);  xy.Elev <- subset(xy.Elev, select= -ID);colnames(xy.Elev) <- c('Elev')
 Egrid <- cbind(Egrid, xy.Elev); 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')#i=7
-for (i in 1:12){
+if(F){for (i in 1:12){
   th = extract(rast(paste0('data/tx',month[i],'.tif')), xy); th <- subset(th, select= -ID); colnames(th) <- paste0('th',month[i])
   Egrid <- cbind(Egrid, th)
 }
@@ -59,8 +67,8 @@ for (i in 1:12){
   colnames(Egrid)[colnames(Egrid) == 'var'] <- paste0("t", month[i])
 }
 
-Egrid$zone <- floor((Egrid$x+180)/2)*100 + floor(Egrid$y+90)
-
+Egrid$zone <- floor((Egrid$x+180)/2)*100 + floor(Egrid$y+90)}
+saveRDS(Egrid, 'output/Egrid.RDS')
 Egrid.agg <- aggregate(Egrid$zone, by=list(Egrid$zone), 'length')
 colnames(Egrid.agg) <- c('zone','count')
 t.colrange = grep("^t01$", colnames(Egrid)):grep("^t12$", colnames(Egrid))
@@ -83,7 +91,7 @@ tr.cols <- grep("^rt01$", colnames(Egrid.s)):grep("^rt12$", colnames(Egrid.s))
 
 
 
-
+if(F){
 
 for (k in 1:nrow(Egrid.s)){
 #for (k in 1:10){
@@ -93,6 +101,31 @@ for(i in 1:12){#i=7
   Egrid.s[k,tr.cols[i]] = model.t$coefficients[2]
     
 }}; saveRDS(Egrid.s, 'output/Egrid.s.RDS')
+}
+#-----
+# ----
+Egrid.s <- readRDS('output/Egrid.s.RDS')
 
 Egrid.agg <- aggregate(list(x=Egrid$x,y=Egrid$y), by=list(zone=Egrid$zone), 'mean')
 Egrid.agg <- merge(Egrid.agg,Egrid.s, by='zone' )
+Egrid.agg <- subset(Egrid.agg, !is.na(rt01))
+xy = as.matrix(as.data.frame(list(x=Egrid.agg$x, y=Egrid.agg$y)))
+xy <- vect(xy,type="points", atts=Egrid.agg, crs="+proj=longlat +datum=WGS84")
+xy.sfc <- st_as_sf(Egrid.agg, coords = c('x', 'y'), crs = "+proj=longlat +datum=WGS84")
+template <- aggregate(Elev5km, fact=10, fun='mean',na.rm=TRUE)
+
+library(gstat)
+library(sf)
+library(sp)
+sf::
+xy.sp <- sf::as_Spatial(xy.sfc)
+colnames(Egrid.agg)
+r <- template
+mg <- gstat(id = "rt01", formula = rt01~1, data=xy.sp,
+            nmax=7, set=list(idp = .5))
+z <- interpolate(template, mg, debug.level=0)
+
+mg <- idw(formula = rt01~1, locations = ~x+y, data=Egrid.agg,
+            nmax=7)
+
+
