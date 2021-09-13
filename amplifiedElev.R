@@ -45,9 +45,13 @@ Egrid <- aggregate(Elev5km, fact=5, fun='mean',na.rm=TRUE)
 Egrid <- as.data.frame(Egrid, xy=T); colnames(Egrid) <- c('x','y','z'); Egrid <- subset(Egrid, !is.nan(z))
 xy = as.matrix(as.data.frame(list(x=Egrid$x, y=Egrid$y)))
 xy <- vect(xy, crs="+proj=longlat +datum=WGS84")
+xy2 <- st_as_sf(Egrid, coords = c("x", "y"), crs = crs(Elev5km))
+xy2<- as_Spatial(xy2)
+writeOGR(xy2, 'output','xy', driver = 'ESRI Shapefile', overwrite_layer = T)
 
 
-xy.Elev = extract(rast(paste0('wc2.1_2.5m_elev/wc2.1_2.5m_elev.tif')), xy);  xy.Elev <- subset(xy.Elev, select= -ID);colnames(xy.Elev) <- c('Elev')
+
+xy.Elev = extract(Elev5km, xy);  xy.Elev <- subset(xy.Elev, select= -ID);colnames(xy.Elev) <- c('Elev')
 Egrid <- cbind(Egrid, xy.Elev); 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')#i=7
 if(T){for (i in 1:12){
@@ -67,7 +71,7 @@ for (i in 1:12){
   colnames(Egrid)[colnames(Egrid) == 'var'] <- paste0("t", month[i])
 }
 
-Egrid$zone <- floor((Egrid$x+180)/2)*100 + floor(Egrid$y+90)
+Egrid$zone <- floor((Egrid$x+180)/2)*1000 + floor(Egrid$y+90)
 saveRDS(Egrid, 'output/Egrid.RDS')}
 Egrid <- readRDS('output/Egrid.RDS')
 Egrid.agg <- aggregate(Egrid$zone, by=list(Egrid$zone), 'length')
@@ -101,12 +105,12 @@ for(i in 1:12){#i=7
   model.t <-lm(Egridk[,t.colrange[i]] ~ Elev + y+ x, data = Egridk) ;summary(model.t)
   Egrid.s[k,tr.cols[i]] = model.t$coefficients[2]
     
-}}; saveRDS(Egrid.s, 'output/Egrid.s.RDS')
+}}; saveRDS(Egrid.s, 'output/Egrid.s.RDS'); saveRDS(Egrid, 'output/Egrid.RDS')
 }
 #-----
 # ----
 Egrid.s <- readRDS('output/Egrid.s.RDS')
-
+Egrid <- readRDS('output/Egrid.RDS')
 Egrid.agg <- aggregate(list(x=Egrid$x,y=Egrid$y), by=list(zone=Egrid$zone), 'mean')
 Egrid.agg <- merge(Egrid.agg,Egrid.s, by='zone' )
 Egrid.agg <- subset(Egrid.agg, !is.na(rt01))
@@ -119,16 +123,22 @@ library(gstat)
 library(sf)
 library(sp)
 library(gstat)
+library(rgdal)
 library(raster)
 
 Elev5km = rast('output/Elev5km.tif')
 
 d <- Egrid.agg[Egrid.agg$rt07 > -.01 & Egrid.agg$rt07 < 0.005,c('x','y','rt07')]
+d<- subset(d, !is.na(x) &!is.na(y) &!is.na(rt07))
+d2 <- st_as_sf(d, coords = c("x", "y"), crs = crs(Elev5km))
+d2<- as_Spatial(d2)
+writeOGR(d2, 'output','d', driver = 'ESRI Shapefile', overwrite_layer = T)
+
 r <- raster(template)
 r[r>=0] <- NA; r[r<0] <- NA
 gs <- gstat(id = 'rt07', formula=rt07~1, locations=~x+y, data=d)
 idw <- interpolate(r, gs, debug.level=0)
-writeRaster(idw,'output/idw.tif')
+writeRaster(idw,'output/idw.tif', overwrite=T)
 idw <- rast('output/idw.tif')
 nelev <-  Elev5km
 nelev <- aggregate(nelev, fact=10, fun='mean', na.rm=T)
@@ -141,16 +151,16 @@ idw2 <-  resample(idw2, Elev5km)
 
 ElevAmp <-  rast('output/ElevAmp.tif')
 Elev5km = rast('output/Elev5km.tif')
-Elev1km = rast('output/Elev1km.tif')
-emax <- Elev1km@ptr@.xData$range_max; emin <- Elev1km@ptr@.xData$range_min
-
-ElevAmp[ElevAmp > emax]<- emax; ElevAmp[ElevAmp < emin]<- emin
+# Elev1km = rast('output/Elev1km.tif')
+# emax <- Elev1km@ptr@.xData$range_max; emin <- Elev1km@ptr@.xData$range_min
+# 
+#ElevAmp[ElevAmp > emax]<- emax; ElevAmp[ElevAmp < emin]<- emin
 rt07 <- (ElevAmp - Elev5km) * idw2
 
 writeRaster(rt07, 'output/rt07.tif', overwrite=T)
 t07 <- rast('output/t07.tif')
 crs(rt07) <- crs(t07)
 t07a <- t07 + rt07
-writeRaster(t07a, 'output/t07a.tif')
+writeRaster(t07a, 'output/t07a.tif', overwrite=T)
 plot(ElevAmp)
 plot(rt07)
