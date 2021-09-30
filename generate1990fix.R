@@ -28,5 +28,20 @@ for(i in 1:12){
 }
 
 retro <- retro[,-c(th.colrange,tl.colrange, xt.colrange, p.colrange)]
+saveRDS(retro, 'output/retro.RDS') 
+#make idw grids ... probably forego a whole set of 1990 corrections
+retro <- readRDS('output/retro.RDS')
+retro <- subset(retro, nchar(NAME) >1)
+Elev5km = rast('output/Elev5km.tif')
 
-#make idw grids ...
+d<- subset(retro, !is.na(Lon) &!is.na(Lat) &!is.na(dt07))
+d <- subset(d, dt07 < 3 & dt07 > -3)
+d2 <- st_as_sf(d, coords = c("Lon", "Lat"), crs = crs(Elev5km))
+d2<- as_Spatial(d2)
+writeOGR(d2, 'output','d2', driver = 'ESRI Shapefile', overwrite_layer = T)
+template <-  aggregate(Elev5km, fact=10)
+r <- raster(template)
+r[r>=0] <- NA; r[r<0] <- NA
+gs <- gstat(id = 'dt07', formula=dt07~1,  data=d2)
+idw <- interpolate(r, gs, debug.level=0)
+writeRaster(idw,'output/idw2.tif', overwrite=T)
