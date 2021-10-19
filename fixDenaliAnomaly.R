@@ -249,9 +249,24 @@ shdmind <- shdmin - Elev5km; writeRaster(shdmind, 'output/shdmind.tif', overwrit
 shdmaxd <- shdmax - Elev5km; writeRaster(shdmaxd, 'output/shdmaxd.tif', overwrite=T)
 shdmean <- mean(sd1,sd2,sd3,sd4,sd5,sd6,sd7,sd8);crs(shdmean) <- crs(Elev5km)
 shdmeand <- shdmean - Elev5km; writeRaster(shdmeand, 'output/shdmeand.tif', overwrite=T)
+
 #Water influence
+library(gstat)
+library(sf)
+library(sp)
+library(gstat)
+library(rgdal)
+library(raster)
+library(plyr)
+library(Rsagacmd)
+library(terra)
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+saga <- saga_gis()
+
+Elev5km = rast('output/Elev5km.tif')
+Elev5km2 = raster('output/Elev5km.tif')
 lakes <- vect('data/wlakes.shp')
-lake.rast <- rasterize(lakes, Elev5km)
+lake.rast <- terra::rasterize(lakes, Elev5km)
 lake.rast[lake.rast >= 0] <- 1
 lake.rast[is.na(lake.rast)] <- 0
 Ocean <- Elev5km; Ocean[Ocean >= 0] <- 0; Ocean[Ocean <= 0] <- 0; Ocean[is.na(Ocean)]<-1
@@ -287,14 +302,32 @@ water20 <- Water10km %>% saga$statistics_grid$focal_statistics(mean='temp/temp2.
 water10 <- Water %>% saga$statistics_grid$focal_statistics(mean='temp/temp1.sgrd',.all_outputs = FALSE,
                                                            kernel_radius=2,
                                                            kernel_type = 2)
-water2000 <- resample(water2000, Elev5km2)
-water1000 <- resample(water1000, Elev5km2)
-water500 <- resample(water500, Elev5km2)
-water200 <- resample(water200, Elev5km2)
-water100 <- resample(water100, Elev5km2)
-water50 <- resample(water50, Elev5km2)
-water20 <- resample(water20, Elev5km2)
-water10 <- resample(water10, Elev5km2)
+water2000 <- raster::resample(water2000, Elev5km2)
+water1000 <- raster::resample(water1000, Elev5km2)
+water500 <- raster::resample(water500, Elev5km2)
+water200 <- raster::resample(water200, Elev5km2)
+water100 <- raster::resample(water100, Elev5km2)
+water50 <- raster::resample(water50, Elev5km2)
+water20 <- raster::resample(water20, Elev5km2)
+water10 <- raster::resample(water10, Elev5km2)
+raster::writeRaster(water2000, 'output/water2000.tif', overwrite=T)
+raster::writeRaster(water1000, 'output/water1000.tif', overwrite=T)
+raster::writeRaster(water500, 'output/water500.tif', overwrite=T)
+raster::writeRaster(water200, 'output/water200.tif', overwrite=T)
+raster::writeRaster(water100, 'output/water100.tif', overwrite=T)
+raster::writeRaster(water50, 'output/water50.tif', overwrite=T)
+raster::writeRaster(water20, 'output/water20.tif', overwrite=T)
+raster::writeRaster(water10, 'output/water10.tif', overwrite=T)
+
+water2000<-rast('output/water2000.tif')
+water1000<-rast('output/water1000.tif')
+water500<-rast('output/water500.tif')
+water200<-rast('output/water200.tif')
+water100<-rast('output/water100.tif')
+water50<-rast('output/water50.tif')
+water20<-rast('output/water20.tif')
+water10<-rast('output/water10.tif')
+
 
 oceanic <- (water2000*8+water1000*7+water500*6+water200*5+
                 water100*4+water50*3+water20*2+water10)/(8+7+6+5+4+3+2+1)
@@ -333,5 +366,151 @@ oceanicwtshad <- oceanicwtshad-Elev5km
 writeRaster(oceanicwtshad, 'output/oceanicwtshad.tif', overwrite=T)
 crs(oceanic) <- crs(Elev5km)
 
+#Model temperature again ----
+library(gstat)
+library(sf)
+library(sp)
+library(gstat)
+library(rgdal)
+library(raster)
+library(plyr)
+library(Rsagacmd)
+library(terra)
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+Egrid <- readRDS('output/Egrid.RDS')
+#reasonable months for Denali
+t10 <- rast('output/t10.tif')
+t04 <- rast('output/t04.tif')
+
+#bad values for Denali
+t11 <- rast('output/t11.tif')
+t12 <- rast('output/t12.tif')
+t01 <- rast('output/t01.tif')
+t02 <- rast('output/t02.tif')
+t03 <- rast('output/t03.tif')
+Elev5km = rast('output/Elev5km.tif')
+terra::crs(Elev5km) <-  terra::crs(t01)
+
+
+sd1 <- rast('output/shad0.tif')
+sd2 <- rast('output/shad45.tif')
+sd3 <- rast('output/shad90.tif')
+sd4 <- rast('output/shad135.tif')
+sd5 <- rast('output/shad180.tif')
+sd6 <- rast('output/shad225.tif')
+sd7 <- rast('output/shad270.tif')
+sd8 <- rast('output/shad315.tif')
+water2000<-rast('output/water2000.tif')
+water1000<-rast('output/water1000.tif')
+water500<-rast('output/water500.tif')
+water200<-rast('output/water200.tif')
+water100<-rast('output/water100.tif')
+water50<-rast('output/water50.tif')
+water20<-rast('output/water20.tif')
+water10<-rast('output/water10.tif')
+
+Elev5km = rast('output/Elev5km.tif')
+crs(Elev5km) <-  crs(t01)
+mintbin <-  (Elev5km > 2000)*(t01 > 0)
+
+fake <- rast(xmin=-155, ymin=58, xmax=-135, ymax=65, crs=crs(t01), res=res(mintbin))
+minttrim <- crop(mintbin, fake)
+minttrim[minttrim < 1] <- NA
+dist.trm <-  raster::distance(raster(minttrim))
+dist.trm <- rast(dist.trm)
+plot(dist.trm)
+
+elv.trm  <- crop(Elev5km, fake)
+t10.trm <- crop(t10, fake)
+t11.trm <- crop(t11, fake)
+t12.trm <- crop(t12, fake)
+t01.trm <- crop(t01, fake)
+t02.trm <- crop(t02, fake)
+t03.trm <- crop(t03, fake)
+t04.trm <- crop(t04, fake)
+w2000.trm <- crop(water2000, fake)
+w1000.trm <- crop(water1000, fake)
+w500.trm <- crop(water500, fake)
+w200.trm <- crop(water200, fake)
+w100.trm <- crop(water100, fake)
+w50.trm <- crop(water50, fake)
+w20.trm <- crop(water20, fake)
+w10.trm <- crop(water10, fake)
+sd1.trm <- crop(sd1, fake)
+sd2.trm <- crop(sd2, fake)
+sd3.trm <- crop(sd3, fake)
+sd4.trm <- crop(sd4, fake)
+sd5.trm <- crop(sd5, fake)
+sd6.trm <- crop(sd6, fake)
+sd7.trm <- crop(sd7, fake)
+sd8.trm <- crop(sd8, fake)
+
+brk = c(dist.trm,
+        elv.trm,
+        t10.trm,
+        t11.trm,
+        t12.trm,
+        t01.trm,
+        t02.trm,
+        t03.trm,
+        t04.trm,
+        w2000.trm,
+        w1000.trm,
+        w500.trm,
+        w200.trm,
+        w100.trm,
+        w50.trm,
+        w20.trm,
+        w10.trm,
+        sd1.trm,
+        sd2.trm,
+        sd3.trm,
+        sd4.trm,
+        sd5.trm,
+        sd6.trm,
+        sd7.trm,
+        sd8.trm)
+df <- as.data.frame(brk, xy=T)
+colnames(df) <- c('x', 'y', 'd', 'e', 't10', 't11', 't12', 't01', 't02', 't03', 't04',
+                  'w2000',
+                  'w1000',
+                  'w500',
+                  'w200',
+                  'w100',
+                  'w50',
+                  'w20',
+                  'w10',
+                  'sd000',
+                  'sd045',
+                  'sd090',
+                  'sd123',
+                  'sd180',
+                  'sd225',
+                  'sd270',
+                  'sd315')
+library(ranger)
+df.s <- subset(df, !is.na(e)&!is.na(t10)&!is.na(t01))
+df.train <- subset(df.s, d > 50000) 
+df.train2 <- df.train
+df.train2$e <- 9000
+df.train2$t01 <- -50
+#df.train <- rbind(df.train, df.train2)
+#plot((elv.trm > 3000) * (dist.trm > 0000))
+# x+y+d+e+t10+t11+t12+t01+t02+t03+t04+w2000+w1000+w500+w200+w100+w50+w20+w10+sd000+sd045+sd090+sd123+sd180+sd225+sd270+sd315
+
+# rf <- ranger(t01 ~ x+y+e+t10+t04,
+#              data=df.train, num.trees=200, max.depth = 20, importance = 'impurity', write.forest = TRUE)
+lmod <- lm(t01 ~ x+y+e+t04+t10+t02+w2000+w1000+w500+w200+w100+w50+w20+w10+sd000+sd045+sd090+sd123+sd180+sd225+sd270+sd315,
+           data=df.train)
+summary(lmod)
+#terra bug ----
+elevdot <- Elev5km > 7000
+elevdot <- aggregate(elevdot, fact = 100, fun='max')
+elevdot[elevdot < 1] <- NA
+dot.dist <- distance(elevdot)
+plot(dot.dist)
+elevdot.r <-  raster(elevdot)
+dot.dist.r <- distance(elevdot.r)
+plot(dot.dist.r)
 
   
