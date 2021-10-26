@@ -167,90 +167,66 @@ brk = c(dist.trm,
           t04.trm)
 df <- as.data.frame(brk, xy=T)
 colnames(df) <- c('x', 'y', 'd', 'e', 't10', 't11', 't12', 't01', 't02', 't03', 't04')
-library(ranger)
-df.s <- subset(df, !is.na(e)&!is.na(t10)&!is.na(t01))
-df.train <- subset(df.s, d > -50000)
-df.train2 <- df.train
-df.train2$e <- 9000
-df.train2$t01 <- -50
-df.train <- rbind(df.train, df.train2)
-#plot((elv.trm > 3000) * (dist.trm > 0000))
-# x+y+d+e+t10+t11+t12+t01+t02+t03+t04
-# rf <- ranger(t01 ~ x+y+e+t10+t04,
-#              data=df.train, num.trees=200, max.depth = 20, importance = 'impurity', write.forest = TRUE)
-lmod <- lm(t01 ~ x+y+e+t04+t10+t02,
-             data=df.train)
-summary(lmod)
-# df.s$pred <- predictions(predict(rf, data=df.s))
-df.s$pred <-   predict.lm(lmod, df.s)
 
-df.rast <- rast(cbind(x=df.s$x,y=df.s$y,z=df.s$pred), type="xyz", crs=crs(t01))
-crs(df.rast) <- crs(t01)
-#plot(t01.trm)
-#plot(df.rast * (dist.trm < 50000))
-Elev10km <- aggregate(Elev5km, fact=2)
-saga_search()
-Elev5km2 <- raster(Elev5km)
+
+#Rain Shadows ----
+library(gstat)
+library(sf)
+library(sp)
+library(gstat)
+library(rgdal)
+library(raster)
+library(plyr)
+library(Rsagacmd)
+library(terra)
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 saga <- saga_gis()
-#print(saga$statistics_grid$focal_statistics)
+
+Elev5km = rast('output/Elev5km.tif')
+Elev5km2 = raster('output/Elev5km.tif')
+Elev10km <- aggregate(Elev5km, fact=2)
+
 radii = c(150,100,75,50,25,10)
 dtn = c(0:7)*45
-dtnL = c(345,30,75,120,165,210,255,300)
-dtnR = c(15,60,105,150,195,240,285,330)
-for (k in 1:length(dtn)){#k=1
-  for (i in 1:length(radii)){#i=4;k=1
+dtnV = dtn[c(5,6,7,8,1,2,3,4)]
+dtnL = dtn[c(7,8,1,2,3,4,5,6)]
+dtnR = dtn[c(3,4,5,6,7,8,1,2)]
+for (k in 1:length(dtn)){#k=6
+  for (i in 1:length(radii)){#i=1;k=1
     sgridN <- Elev10km %>% saga$statistics_grid$focal_statistics(max='temp/tempN.sgrd',.all_outputs = FALSE,
                                                                  kernel_radius=radii[i],
                                                                  kernel_type = 3,
                                                                  kernel_direction = dtn[k],
                                                                  kernel_tolerance = 0)
-    sgridL <- Elev10km %>% saga$statistics_grid$focal_statistics(max='temp/tempL.sgrd',.all_outputs = FALSE,
-                                                                 kernel_radius=radii[i],
-                                                                 kernel_type = 3,
-                                                                 kernel_direction = dtnL[k],
-                                                                 kernel_tolerance = 0)
-    sgridR <- Elev10km %>% saga$statistics_grid$focal_statistics(max='temp/tempR.sgrd',.all_outputs = FALSE,
-                                                                 kernel_radius=radii[i],
-                                                                 kernel_type = 3,
-                                                                 kernel_direction = dtnR[k],
-                                                                 kernel_tolerance = 0)
-    sgrid0 <- (sgridN + sgridL + sgridR)/3
     
-    if(i==1){sgrid <- sgrid0}else{sgrid <- (sgrid0 + sgrid1)/2}
-   
-     sgrid1 <- sgrid %>% saga$statistics_grid$focal_statistics(mean='temp/temp.sgrd',.all_outputs = FALSE,
-                                                             kernel_radius=1,
-                                                             kernel_type = 2)
-     sgrid2 <- resample(sgrid1, Elev5km2)
-    }
+    
+    if(i==1){sgrid <- sgridN}else{sgrid <- (sgridN + sgrid*(2-1))/2}
+  }
+  sgridV <- sgrid %>% saga$statistics_grid$focal_statistics(mean='temp/sgridV.sgrd',.all_outputs = FALSE,
+                                                            kernel_radius=10,
+                                                            kernel_type = 3,
+                                                            kernel_direction = dtnV[k],
+                                                            kernel_tolerance = 0)
+  sgridL <- sgridV %>% saga$statistics_grid$focal_statistics(mean='temp/tempL.sgrd',.all_outputs = FALSE,
+                                                             kernel_radius=2,
+                                                             kernel_type = 3,
+                                                             kernel_direction = dtnL[k],
+                                                             kernel_tolerance = 0)
+  sgridR <- sgridV %>% saga$statistics_grid$focal_statistics(mean='temp/tempR.sgrd',.all_outputs = FALSE,
+                                                             kernel_radius=2,
+                                                             kernel_type = 3,
+                                                             kernel_direction = dtnR[k],
+                                                             kernel_tolerance = 0)
+  sgrid1 <- min((sgridL+sgridR)/2, sgrid)
+  sgrid2 <- resample(sgrid1, Elev5km2)
+  #sgrid2 <- Elev5km2-sgrid2
+  #writeRaster(sgrid2, 'output/sgrid.tif', overwrite=T)
   
-  names(sgrid2) <- paste0('shad',dtn[k])
-  writeRaster(sgrid2, paste0('output/shad',dtn[k],'.tif'), overwrite=T)
+  names(sgrid2) <- paste0('shadw',dtn[k])
+  writeRaster(sgrid2, paste0('output/shadw',dtn[k],'.tif'), overwrite=T)
 }
-dxn <- rast('output/shad225.tif')
-crs(dxn) <- crs(Elev5km)
-dxnshd <-  dxn - Elev5km
-writeRaster(dxnshd, 'output/dxnshd.tif', overwrite=T)
-dxs <- rast('output/shad45.tif')
-crs(dxs) <- crs(Elev5km)
-dxsshd <-  dxs - Elev5km
-writeRaster(dxsshd, 'output/dxsshd.tif', overwrite=T)
-sd1 <- rast('output/shad0.tif')
-sd2 <- rast('output/shad45.tif')
-sd3 <- rast('output/shad90.tif')
-sd4 <- rast('output/shad135.tif')
-sd5 <- rast('output/shad180.tif')
-sd6 <- rast('output/shad225.tif')
-sd7 <- rast('output/shad270.tif')
-sd8 <- rast('output/shad315.tif')
-shdmin <- min(sd1,sd2,sd3,sd4,sd5,sd6,sd7,sd8);crs(shdmin) <- crs(Elev5km)
-shdmax <- max(sd1,sd2,sd3,sd4,sd5,sd6,sd7,sd8);crs(shdmax) <- crs(Elev5km)
-shdmind <- shdmin - Elev5km; writeRaster(shdmind, 'output/shdmind.tif', overwrite=T)
-shdmaxd <- shdmax - Elev5km; writeRaster(shdmaxd, 'output/shdmaxd.tif', overwrite=T)
-shdmean <- mean(sd1,sd2,sd3,sd4,sd5,sd6,sd7,sd8);crs(shdmean) <- crs(Elev5km)
-shdmeand <- shdmean - Elev5km; writeRaster(shdmeand, 'output/shdmeand.tif', overwrite=T)
 
-#Water influence
+#Water influence ----
 library(gstat)
 library(sf)
 library(sp)
@@ -366,7 +342,10 @@ oceanicwtshad <- oceanicwtshad-Elev5km
 writeRaster(oceanicwtshad, 'output/oceanicwtshad.tif', overwrite=T)
 crs(oceanic) <- crs(Elev5km)
 
-#Model temperature again ----
+
+
+####################################
+#Model Temperature ----
 library(gstat)
 library(sf)
 library(sp)
@@ -392,14 +371,23 @@ Elev5km = rast('output/Elev5km.tif')
 terra::crs(Elev5km) <-  terra::crs(t01)
 
 
-sd1 <- rast('output/shad0.tif')
-sd2 <- rast('output/shad45.tif')
-sd3 <- rast('output/shad90.tif')
-sd4 <- rast('output/shad135.tif')
-sd5 <- rast('output/shad180.tif')
-sd6 <- rast('output/shad225.tif')
-sd7 <- rast('output/shad270.tif')
-sd8 <- rast('output/shad315.tif')
+sd1 <- rast('output/shadw0.tif')
+sd2 <- rast('output/shadw45.tif')
+sd3 <- rast('output/shadw90.tif')
+sd4 <- rast('output/shadw135.tif')
+sd5 <- rast('output/shadw180.tif')
+sd6 <- rast('output/shadw225.tif')
+sd7 <- rast('output/shadw270.tif')
+sd8 <- rast('output/shadw315.tif')
+crs(sd1) <- crs(t01)
+crs(sd2) <- crs(t01)
+crs(sd3) <- crs(t01)
+crs(sd4) <- crs(t01)
+crs(sd5) <- crs(t01)
+crs(sd6) <- crs(t01)
+crs(sd7) <- crs(t01)
+crs(sd8) <- crs(t01)
+
 water2000<-rast('output/water2000.tif')
 water1000<-rast('output/water1000.tif')
 water500<-rast('output/water500.tif')
@@ -408,12 +396,20 @@ water100<-rast('output/water100.tif')
 water50<-rast('output/water50.tif')
 water20<-rast('output/water20.tif')
 water10<-rast('output/water10.tif')
+oceanic<-rast('output/oceanic.tif')
+
+crs(oceanic) <- crs(t01)
+crs(Elev5km) <- crs(t01)
+
+# invzone <- (oceanic * (500) + (oceanic*-1+1) * (2000)) * (Elev5km>0)
+# plot(invzone)
 
 Elev5km = rast('output/Elev5km.tif')
 crs(Elev5km) <-  crs(t01)
 mintbin <-  (Elev5km > 2000)*(t01 > 0)
 
-fake <- rast(xmin=-155, ymin=58, xmax=-135, ymax=65, crs=crs(t01), res=res(mintbin))
+fake <- rast(xmin=-158, ymin=55, xmax=-132, ymax=68, crs=crs(t01), res=res(mintbin))
+#fake <- rast(xmin=-160, ymin=18, xmax=-154, ymax=23, crs=crs(t01), res=res(mintbin))
 minttrim <- crop(mintbin, fake)
 minttrim[minttrim < 1] <- NA
 dist.trm <-  raster::distance(raster(minttrim))
@@ -436,6 +432,8 @@ w100.trm <- crop(water100, fake)
 w50.trm <- crop(water50, fake)
 w20.trm <- crop(water20, fake)
 w10.trm <- crop(water10, fake)
+ocean.trm <- crop(oceanic, fake)
+
 sd1.trm <- crop(sd1, fake)
 sd2.trm <- crop(sd2, fake)
 sd3.trm <- crop(sd3, fake)
@@ -444,6 +442,29 @@ sd5.trm <- crop(sd5, fake)
 sd6.trm <- crop(sd6, fake)
 sd7.trm <- crop(sd7, fake)
 sd8.trm <- crop(sd8, fake)
+
+# sd1.trm <- sd1.trm - elv.trm
+# sd2.trm <- sd2.trm - elv.trm
+# sd3.trm <- sd3.trm - elv.trm
+# sd4.trm <- sd4.trm - elv.trm
+# sd5.trm <- sd5.trm - elv.trm
+# sd6.trm <- sd6.trm - elv.trm
+# sd7.trm <- sd7.trm - elv.trm
+# sd8.trm <- sd8.trm - elv.trm
+
+crs(w2000.trm) <-  crs(t01)
+crs(w1000.trm) <-  crs(t01)
+crs(w500.trm) <-  crs(t01)
+crs(w200.trm) <-  crs(t01)
+crs(w100.trm) <-  crs(t01)
+crs(ocean.trm) <-  crs(t01)
+
+invzone <- (ocean.trm * (1500) + (ocean.trm*-1+1) * (1500))
+invA <- (elv.trm - invzone)*((elv.trm - invzone) >=0)
+invB <- (elv.trm - invzone)*((elv.trm - invzone) < 0)
+sdmin <- min(sd1.trm,sd2.trm,sd3.trm,sd4.trm,sd4.trm,sd5.trm,sd6.trm,sd7.trm,sd5.trm,sd8.trm)
+sdmax <- max(sd1.trm,sd2.trm,sd3.trm,sd4.trm,sd4.trm,sd5.trm,sd6.trm,sd7.trm,sd5.trm,sd8.trm)
+
 
 brk = c(dist.trm,
         elv.trm,
@@ -469,7 +490,12 @@ brk = c(dist.trm,
         sd5.trm,
         sd6.trm,
         sd7.trm,
-        sd8.trm)
+        sd8.trm,
+        ocean.trm,
+        sdmin,
+        sdmax,
+        invA,
+        invB)
 df <- as.data.frame(brk, xy=T)
 colnames(df) <- c('x', 'y', 'd', 'e', 't10', 't11', 't12', 't01', 't02', 't03', 't04',
                   'w2000',
@@ -483,34 +509,64 @@ colnames(df) <- c('x', 'y', 'd', 'e', 't10', 't11', 't12', 't01', 't02', 't03', 
                   'sd000',
                   'sd045',
                   'sd090',
-                  'sd123',
+                  'sd135',
                   'sd180',
                   'sd225',
                   'sd270',
-                  'sd315')
+                  'sd315',
+                  'ocean',
+                  'sdmin',
+                  'sdmax',
+                  'invA',
+                  'invB')
 library(ranger)
 df.s <- subset(df, !is.na(e)&!is.na(t10)&!is.na(t01))
-df.train <- subset(df.s, d > 50000) 
+df.s$south <- apply(df.s[,c('sd135', 'sd180', 'sd225', 'sd270')], MARGIN = 1, FUN = 'mean')
+df.s$north <- apply(df.s[,c('sd000', 'sd045','sd270', 'sd315')], MARGIN = 1, FUN = 'mean')
+df.s$eocean <- df.s$ocean*(df.s$e*-1+1) 
+df.train <- subset(df.s, d > 0000) 
+
+df.train$invzone <- (df.train$ocean * (1500) + (df.train$ocean*-1+1) * (1500))
 df.train2 <- df.train
 df.train2$e <- 9000
-df.train2$t01 <- -50
-#df.train <- rbind(df.train, df.train2)
-#plot((elv.trm > 3000) * (dist.trm > 0000))
-# x+y+d+e+t10+t11+t12+t01+t02+t03+t04+w2000+w1000+w500+w200+w100+w50+w20+w10+sd000+sd045+sd090+sd123+sd180+sd225+sd270+sd315
 
-# rf <- ranger(t01 ~ x+y+e+t10+t04,
-#              data=df.train, num.trees=200, max.depth = 20, importance = 'impurity', write.forest = TRUE)
-lmod <- lm(t01 ~ x+y+e+t04+t10+t02+w2000+w1000+w500+w200+w100+w50+w20+w10+sd000+sd045+sd090+sd123+sd180+sd225+sd270+sd315,
+df.train2$invA <- (9000 - df.train$invzone)*((9000 - df.train$invzone) >=0)
+df.train2$invB <- (9000 - df.train$invzone)*((9000 - df.train$invzone) < 0)
+df.train2$eocean <- df.train2$ocean*(df.train2$e*-1+1)
+df.train2$t01 <- -50
+df.train <- rbind(df.train, df.train2)
+
+#plot((elv.trm > 3000) * (dist.trm > 0000))
+# x+y+d+e+t10+t11+t12+t01+t02+t03+t04+w2000+w1000+w500+w200+w100+w50+w20+w10+sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315
+
+#random forest
+# rf <- ranger(t01 ~ x+y+w2000+w1000+w500+w200+w100+w50+w20+w10+invA+invB+sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315,
+#              data=df.train, num.trees=200, max.depth = 7, importance = 'impurity', write.forest = TRUE)
+# df.s$pred <-    predictions(predict(rf, data=df.s))
+# df.rast <- rast(cbind(x=df.s$x,y=df.s$y,z=df.s$pred), type="xyz", crs=crs(t01))
+# crs(df.rast) <- crs(t01)
+# plot(df.rast)
+
+#linear model
+# lmod <- lm(t01 ~ x+y+e+w2000+w1000+w500+w200+w100+w50+w20+w10+sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315,
+#            data=df.train)
+# summary(lmod)
+# library(olsrr)
+# ols_step_backward_p(lmod, details = T)
+# cor(df.train[,c('t01', 'x', 'y', 'w2000', 'w1000', 'w500', 'w200', 'w100', 'w50', 'w20',
+#                 'w10', 'sd000', 'sd045', 'sd090', 'sd135', 'sd180', 'sd225', 'sd270', 'sd315', 'invA', 'invB')])
+
+
+lmod <- lm(t01 ~ x+y+invA+invB+sdmin+sdmax+eocean+w2000+w1000+w500+w200+w100+w50+w20+w10+sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315,
            data=df.train)
 summary(lmod)
-#terra bug ----
-elevdot <- Elev5km > 7000
-elevdot <- aggregate(elevdot, fact = 100, fun='max')
-elevdot[elevdot < 1] <- NA
-dot.dist <- distance(elevdot)
-plot(dot.dist)
-elevdot.r <-  raster(elevdot)
-dot.dist.r <- distance(elevdot.r)
-plot(dot.dist.r)
 
-  
+df.s$pred <-   predict.lm(lmod, df.s)
+
+df.rast <- rast(cbind(x=df.s$x,y=df.s$y,z=df.s$pred), type="xyz", crs=crs(t01))
+crs(df.rast) <- crs(t01)
+plot(df.rast)
+
+writeRaster(df.rast,'output/df.rast.tif', overwrite=T)
+
+
