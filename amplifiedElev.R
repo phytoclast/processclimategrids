@@ -207,6 +207,7 @@ writeRaster(t07a, 'output/t07a.tif', overwrite=T)
 plot(ElevAmp)
 plot(rt07)
 
+######################################
 #generate amplified temperature grids ----
 library(gstat)
 library(sf)
@@ -246,13 +247,13 @@ idw2 <-  resample(idw2, Elev5km)
 #writeRaster(idw2,'output/idw2.tif', overwrite=TRUE)
 th0 = rast(paste0('data/tx',month[i],'.tif'))
 tl0 = rast(paste0('data/tn',month[i],'.tif'))
-t0 = rast(paste0('output/t',month[i],'.tif'))
+t0 = rast(paste0('output/denalifix/t',month[i],'.tif'))
 tmax <- t0@ptr$range_max
 tmin <- t0@ptr$range_min
 tdif <- edif * idw2; crs(tdif) <- crs(t0)
 t  <- tdif + t0; names(t) <- paste0('t',month[i]); t[t > tmax+3] <- tmax+3; t[t < tmin-3] <- tmin-3
-th <- (th0 - t0) + t; names(th) <- paste0('th',month[i])
-tl <- (tl0 - t0) + t; names(tl) <- paste0('tl',month[i])
+th <- (th0 - tl0)/2 + t; names(th) <- paste0('th',month[i])
+tl <- (tl0 - th0)/2 + t; names(tl) <- paste0('tl',month[i])
 writeRaster(t, paste0('output/amplified/t',month[i],'.tif'), overwrite=T)
 writeRaster(th, paste0('output/amplified/th',month[i],'.tif'), overwrite=T)
 writeRaster(tl, paste0('output/amplified/tl',month[i],'.tif'), overwrite=T)
