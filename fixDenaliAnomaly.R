@@ -406,16 +406,10 @@ crs(Elev5km) <- crs(t01)
 
 Elev5km = rast('output/Elev5km.tif')
 crs(Elev5km) <-  crs(t01)
-mintbin <-  (Elev5km > 2000)*(t01 > 0)
 
-fake <- rast(xmin=-158, ymin=55, xmax=-132, ymax=68, crs=crs(t01), res=res(mintbin))
-#fake <- rast(xmin=-160, ymin=18, xmax=-154, ymax=23, crs=crs(t01), res=res(mintbin))
-minttrim <- crop(mintbin, fake)
-minttrim[minttrim < 1] <- NA
-dist.trm <-  raster::distance(raster(minttrim))
-dist.trm <- rast(dist.trm)
-plot(dist.trm)
-
+fake <- rast(xmin=-158, ymin=59, xmax=-135, ymax=66, crs=crs(t01), res=res(t01))
+#fake <- rast(xmin=-158, ymin=55, xmax=-132, ymax=68, crs=crs(t01), res=res(t01))
+#fake <- rast(xmin=-160, ymin=18, xmax=-154, ymax=23, crs=crs(t01), res=res(t01))
 elv.trm  <- crop(Elev5km, fake)
 t10.trm <- crop(t10, fake)
 t11.trm <- crop(t11, fake)
@@ -458,6 +452,17 @@ crs(w500.trm) <-  crs(t01)
 crs(w200.trm) <-  crs(t01)
 crs(w100.trm) <-  crs(t01)
 crs(ocean.trm) <-  crs(t01)
+
+mintbin <-  (elv.trm > 1000)*(t01.trm > -10)*(w500.trm<.10) + (elv.trm > 2000)*(t01.trm > 0)
+plot(mintbin)
+mintbin[mintbin < 1] <- NA
+dist.trm <-  raster::distance(raster(mintbin))
+plot(dist.trm > 50000)
+binary.trm <-  dist.trm > 50000
+binary.trm <- focal(binary.trm, w=matrix(1/(19*19), nc=19, nr=19), fun='sum')
+binary.trm <- rast(binary.trm)
+dist.trm <- rast(dist.trm)
+plot(binary.trm)
 
 invzone <- (ocean.trm * (1500) + (ocean.trm*-1+1) * (1500))
 invA <- (elv.trm - invzone)*((elv.trm - invzone) >=0)
@@ -524,16 +529,24 @@ df.s <- subset(df, !is.na(e)&!is.na(t10)&!is.na(t01))
 df.s$south <- apply(df.s[,c('sd135', 'sd180', 'sd225', 'sd270')], MARGIN = 1, FUN = 'mean')
 df.s$north <- apply(df.s[,c('sd000', 'sd045','sd270', 'sd315')], MARGIN = 1, FUN = 'mean')
 df.s$eocean <- df.s$ocean*(df.s$e*-1+1) 
+df.s$e2 <- df.s$e^2
 df.train <- subset(df.s, d > 0000) 
 
 df.train$invzone <- (df.train$ocean * (1500) + (df.train$ocean*-1+1) * (1500))
 df.train2 <- df.train
 df.train2$e <- 9000
-
+df.train2$e2 <- df.train2$e^2
 df.train2$invA <- (9000 - df.train$invzone)*((9000 - df.train$invzone) >=0)
 df.train2$invB <- (9000 - df.train$invzone)*((9000 - df.train$invzone) < 0)
 df.train2$eocean <- df.train2$ocean*(df.train2$e*-1+1)
-df.train2$t01 <- -50
+df.train2$t01 <- -34
+df.train2$t02 <- -34
+df.train2$t03 <- -34
+df.train2$t11 <- -34
+df.train2$t12 <- -34
+mean(c(-5.672625, -62.95136))
+df.train2$t10 <- -5.672625
+df.train2$t04 <- -62.95136
 df.train <- rbind(df.train, df.train2)
 
 #plot((elv.trm > 3000) * (dist.trm > 0000))
@@ -555,9 +568,35 @@ df.train <- rbind(df.train, df.train2)
 # ols_step_backward_p(lmod, details = T)
 # cor(df.train[,c('t01', 'x', 'y', 'w2000', 'w1000', 'w500', 'w200', 'w100', 'w50', 'w20',
 #                 'w10', 'sd000', 'sd045', 'sd090', 'sd135', 'sd180', 'sd225', 'sd270', 'sd315', 'invA', 'invB')])
+#t10 ----
+lmod <- lm(t10 ~ x+y+invA+invB+sdmin+sdmax+eocean+w2000+w1000+w500+w200+w100+w50+w20+w10+
+             sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315,
+           data=df.train)
+summary(lmod)
+
+df.s$pred <-   predict.lm(lmod, df.s)
 
 
-lmod <- lm(t01 ~ x+y+invA+invB+sdmin+sdmax+eocean+w2000+w1000+w500+w200+w100+w50+w20+w10+sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315,
+df.s[38808,]$pred  - df.s[38808,]$t10
+#t04 ----
+lmod <- lm(t04 ~ x+y+invA+invB+sdmin+sdmax+eocean+w2000+w1000+w500+w200+w100+w50+w20+w10+
+             sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315,
+           data=df.train)
+summary(lmod)
+
+df.s$pred <-   predict.lm(lmod, df.s)
+
+
+df.s[38808,]$pred  - df.s[38808,]$t04
+
+
+t04rate <- (df.s[38808,]$t04 - df.s[28332,]$t04)/(df.s[38808,]$e - df.s[28332,]$e)
+t10rate <- (df.s[38808,]$t10 - df.s[28332,]$t10)/(df.s[38808,]$e - df.s[28332,]$e)
+(9000 - df.s[38808,]$e)*t04rate + df.s[38808,]$t04
+(9000 - df.s[38808,]$e)*t10rate + df.s[38808,]$t10
+#t01 ----
+lmod <- lm(t01 ~ x+y+invA+invB+sdmin+sdmax+eocean+w2000+w1000+w500+w200+w100+w50+w20+w10+
+             sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315,
            data=df.train)
 summary(lmod)
 
@@ -565,8 +604,104 @@ df.s$pred <-   predict.lm(lmod, df.s)
 
 df.rast <- rast(cbind(x=df.s$x,y=df.s$y,z=df.s$pred), type="xyz", crs=crs(t01))
 crs(df.rast) <- crs(t01)
+df.rast <-  crop(df.rast, t01.trm)
+
 plot(df.rast)
 
-writeRaster(df.rast,'output/df.rast.tif', overwrite=T)
+newrast <- t01.trm*binary.trm + df.rast*(binary.trm*-1+1)
+
+newext <-  align(ext(newrast),t01)
+ext(newrast) <- newext
+t01.new <-  merge(newrast,t01)
+names(t01.new) <- 't01'
+writeRaster(t01.new,'output/denalifix/t01.tif', overwrite=T)
+#t02 ----
+lmod <- lm(t02 ~ x+y+invA+invB+sdmin+sdmax+eocean+w2000+w1000+w500+w200+w100+w50+w20+w10+
+             sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315,
+           data=df.train)
+summary(lmod)
+
+df.s$pred <-   predict.lm(lmod, df.s)
+
+df.rast <- rast(cbind(x=df.s$x,y=df.s$y,z=df.s$pred), type="xyz", crs=crs(t02))
+crs(df.rast) <- crs(t01)
+df.rast <-  crop(df.rast, t02.trm)
+
+plot(df.rast)
+
+newrast <- t02.trm*binary.trm + df.rast*(binary.trm*-1+1)
+plot(newrast)
+newext <-  align(ext(newrast),t01)
+ext(newrast) <- newext
+
+t02.new <-  merge(newrast,t02)
+names(t02.new) <- 't02'
+writeRaster(t02.new,'output/denalifix/t02.tif', overwrite=T)
+#t03 ----
+lmod <- lm(t03 ~ x+y+invA+invB+sdmin+sdmax+eocean+w2000+w1000+w500+w200+w100+w50+w20+w10+
+             sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315,
+           data=df.train)
+summary(lmod)
+
+df.s$pred <-   predict.lm(lmod, df.s)
+
+df.rast <- rast(cbind(x=df.s$x,y=df.s$y,z=df.s$pred), type="xyz", crs=crs(t03))
+crs(df.rast) <- crs(t01)
+df.rast <-  crop(df.rast, t03.trm)
+
+plot(df.rast)
+newext <-  align(ext(newrast),t01)
+ext(newrast) <- newext
+
+newrast <- t03.trm*binary.trm + df.rast*(binary.trm*-1+1)
+plot(newrast)
+
+t03.new <-  merge(newrast,t03)
+names(t03.new) <- 't03'
+writeRaster(t03.new,'output/denalifix/t03.tif', overwrite=T)
+#t11 ----
+lmod <- lm(t11 ~ x+y+invA+invB+sdmin+sdmax+eocean+w2000+w1000+w500+w200+w100+w50+w20+w10+
+             sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315,
+           data=df.train)
+summary(lmod)
+
+df.s$pred <-   predict.lm(lmod, df.s)
+
+df.rast <- rast(cbind(x=df.s$x,y=df.s$y,z=df.s$pred), type="xyz", crs=crs(t11))
+crs(df.rast) <- crs(t01)
+df.rast <-  crop(df.rast, t11.trm)
+
+plot(df.rast)
+newext <-  align(ext(newrast),t01)
+ext(newrast) <- newext
+
+newrast <- t11.trm*binary.trm + df.rast*(binary.trm*-1+1)
+plot(newrast)
+
+t11.new <-  merge(newrast,t11)
+names(t11.new) <- 't11'
+writeRaster(t11.new,'output/denalifix/t11.tif', overwrite=T)
+#t12 ----
+lmod <- lm(t12 ~ x+y+invA+invB+sdmin+sdmax+eocean+w2000+w1000+w500+w200+w100+w50+w20+w10+
+             sd000+sd045+sd090+sd135+sd180+sd225+sd270+sd315,
+           data=df.train)
+summary(lmod)
+
+df.s$pred <-   predict.lm(lmod, df.s)
+
+df.rast <- rast(cbind(x=df.s$x,y=df.s$y,z=df.s$pred), type="xyz", crs=crs(t12))
+crs(df.rast) <- crs(t01)
+df.rast <-  crop(df.rast, t12.trm)
+
+plot(df.rast)
+
+newrast <- t12.trm*binary.trm + df.rast*(binary.trm*-1+1)
+plot(newrast)
+newext <-  align(ext(newrast),t01)
+ext(newrast) <- newext
+
+t12.new <-  merge(newrast,t12)
+names(t12.new) <- 't12'
+writeRaster(t12.new,'output/denalifix/t12.tif', overwrite=T)
 
 
