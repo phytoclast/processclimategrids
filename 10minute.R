@@ -95,10 +95,8 @@ findRs <- function(Rso,p,th,tl) {
             Rso*log(p+1)*-9.087e-02+
             Rso*tl*-3.644e-03+
             Rso*log(p+1)*th*1.335e-03)
-  Rs <- pmax(0,pmin(Rso,Rs0))
+  Rs <- pmax(0.3*Rso,pmin(Rso,Rs0))
   return(Rs)}
-
-c.tab$Rs.new <- findRs(c.tab$Rso,c.tab$p,c.tab$th,c.tab$tl)
 
 
 model <- lm(Vp ~ 0 

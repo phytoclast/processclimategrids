@@ -56,7 +56,7 @@ findRs <- function(Rso,p,th,tl) {
             Rso*log(p+1)*-9.087e-02+
             Rso*tl*-3.644e-03+
             Rso*log(p+1)*th*1.335e-03)
-  Rs <- pmax(0,pmin(Rso,Rs0))
+  Rs <- pmax(0.3*Rso,pmin(Rso,Rs0))
   return(Rs)}
 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
@@ -326,7 +326,6 @@ numclim <- biglist[,c("Lat","Elev1","Mon","p","t","th","tl","Vpmax",
                       "Vpmean","e.tw","e.ho","e.gs","e.pt","e.pm",
                       "e.hs","e.tc","e.mh", "e.hm")]
 cormat <- as.data.frame(cor(numclim))
-
 
 model <- lm(e.pm ~ 0 + Ra*Vpmax, data=biglist)
 summary(model)
