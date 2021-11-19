@@ -25,6 +25,9 @@ month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 # for (i in 1:12){
 #   assign(paste0('Rs',month[i]), rast(paste0('10min/wc2.1_10m_srad/wc2.1_10m_srad_',month[i],'.tif')))
 # }
+# for (i in 1:12){
+#   assign(paste0('U',month[i]), rast(paste0('10min/wc2.1_10m_wind/wc2.1_10m_wind_',month[i],'.tif')))
+# }
 Elev <- rast('10min/wc2.1_10m_elev/wc2.1_10m_elev.tif'); names(Elev) <- 'Elev'
 for (i in 1:12){#i=1
 p <- assign(paste0('p',month[i]), rast(paste0('10min/wc2.1_10m_prec/wc2.1_10m_prec_',month[i],'.tif'))); names(p) <- 'p'
@@ -33,8 +36,9 @@ th <- assign(paste0('th',month[i]), rast(paste0('10min/wc2.1_10m_tmax/wc2.1_10m_
 tl <- assign(paste0('tl',month[i]), rast(paste0('10min/wc2.1_10m_tmin/wc2.1_10m_tmin_',month[i],'.tif'))); names(tl) <- 'tl'
 Vp <- assign(paste0('Vp',month[i]), rast(paste0('10min/wc2.1_10m_vapr/wc2.1_10m_vapr_',month[i],'.tif'))); names(Vp) <- 'Vp'
 Rs <- assign(paste0('Rs',month[i]), rast(paste0('10min/wc2.1_10m_srad/wc2.1_10m_srad_',month[i],'.tif'))); names(Rs) <- 'Rs'
+U <- assign(paste0('U',month[i]), rast(paste0('10min/wc2.1_10m_wind/wc2.1_10m_wind_',month[i],'.tif'))); names(U) <- 'U'
 
-c.brick <- c(Elev,t,th,tl,p,Vp,Rs)
+c.brick <- c(Elev,t,th,tl,p,Vp,Rs,U)
 c.tab0 <- as.data.frame(c.brick, xy=TRUE)
 c.tab0$mon <- i
 if(i==1){c.tab <- c.tab0}else{c.tab <- rbind(c.tab,c.tab0)}
@@ -89,6 +93,17 @@ model <- lm(Rs ~ 0
             +Rso:tl
             ,data = c.tab)
 summary(model)
+
+model <- lm(U ~ 
+             poly(y,2)
+            +Elev
+            +Ra
+            +th
+            +tl
+            +p
+            ,data = c.tab)
+summary(model)
+mean(c.tab$U)
 
 findRs <- function(Rso,p,th,tl) {
   Rs0 <- (Rso*9.521e-01+
