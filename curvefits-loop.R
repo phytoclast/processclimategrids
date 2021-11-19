@@ -45,19 +45,33 @@ t.vert <-  function(tr1){
   tr = 2^(tr1)-0.0001
   return(tr)
 }
-findVp  <- function(p,Vpmax,Vpmin) {
+
+GetVp  <- function(p,th,tl) {#Based on linear regression using 10 minute WorldClim 2.0 data with vapor pressure estimates
+  Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
+  Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
   Vp0 <- (Vpmin*7.976e-01+
             Vpmin*log(p+1)*9.499e-02+
             Vpmin*Vpmax*-6.599e-02)
   Vp <- pmax(0,pmin(Vpmin,Vp0))
   return(Vp)}
-findRs <- function(Rso,p,th,tl) {
+
+GetSolar <- function(Ra, Elev, th, tl, p) {#Based on linear regression using 10 minute WorldClim 2.0 data with solar radiation estimates
+  Rso <- (0.75+2*10^-5*Elev)*Ra
   Rs0 <- (Rso*9.521e-01+
             Rso*log(p+1)*-9.087e-02+
             Rso*tl*-3.644e-03+
             Rso*log(p+1)*th*1.335e-03)
   Rs <- pmax(0.3*Rso,pmin(Rso,Rs0))
   return(Rs)}
+
+GetNetSolar <- function(Ra, Elev, th, tl, p){
+  Vp = GetVp(p,th,tl)
+  Rso <- (0.75+2*10^-5*Elev)*Ra
+  Rs <- GetSolar(Ra, Elev, th, tl, p)
+  Rnl <- 4.901*10^-9 * (1.35*Rs/(Rso+0.000001)-0.35) * (0.34 - 0.14 * Vp^0.5) * ((th+273.16)^4 + (tl+273.16)^4)/2
+  Rns <- (1-0.23)*Rs
+  Rn <- pmax(0,Rns - Rnl)
+  return(Rn)}
 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 pre.tab <- read.csv('output/clim.tab.fill.csv')#; saveRDS(pre.tab, 'output/pre.tab.RDS')
@@ -251,11 +265,11 @@ climtab <- subset(climtab, select=c(stid,stnm,Lat,Lon,Elev1,Mon,p,t,th,tl))
 #Humidity ----
 climtab$t <- (climtab$th+climtab$tl)/2
 climtab$Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
-climtab$Vpmean = 0.6108*exp(17.27*climtab$t/(climtab$t+237.3)) #saturation vapor pressure kPa
 climtab$Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
-climtab$Vp = (climtab$Vpmax+climtab$Vpmin)/2
-climtab$Vp.new <- findVp(climtab$p,climtab$Vpmax,climtab$Vpmin)
-climtab$RH = climtab$Vp/climtab$Vp.new*100
+#climtab$Vpmean = (climtab$Vpmax+climtab$Vpmin)/2
+climtab$Vpmean = 0.6108*exp(17.27*climtab$t/(climtab$t+237.3)) #saturation vapor pressure kPa
+climtab$Vp = GetVp(p,th,tl)#actual vapor pressure kPa
+climtab$RH = climtab$Vp/climtab$Vpmean*100
 
 #calculate radiation ----
 climtab$declination <- NA
@@ -270,12 +284,14 @@ climtab$Ra <- 117.5 * (climtab$hs*sin(Lat/360*2*3.141592)*sin(climtab$declinatio
                          cos(Lat/360*2*3.141592)*cos(climtab$declination)*sin(climtab$hs)) / 3.141592
 climtab$Dl <- ifelse(Lat + climtab$declination*360/2/3.141592 > 89.16924, 24, ifelse(Lat - climtab$declination*360/2/3.141592 >= 90, 0, (atan(-((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))/(-((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))*((sin(-0.83/360*2*3.141592)-sin(climtab$declination)*sin(Lat/360*2*3.141592))/(cos(climtab$declination)*cos(Lat/360*2*3.141592)))+1)^0.5)+2*atan(1))/3.141592*24))
 climtab$hs <- NULL ; climtab$declination <- NULL
-climtab$Rso <- (0.75+2*10^-5*Elev)*climtab$Ra 
-climtab$Rs <- findRs(climtab$Rso,climtab$p,climtab$th,climtab$tl) #based on regression on gridded data
+#climtab$Rso <- (0.75+2*10^-5*Elev)*climtab$Ra 
 #climtab$Rs <- pmin(climtab$Rso,pmax(0.3*climtab$Rso, 0.14*(climtab$th-climtab$tl)^0.5*climtab$Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with average constant of 0.175 for 0.16 inland and 0.19 for coastal, but reduced to 0.14 because of bias suggests it is 0.8 of the actual values at a few selected stations
-climtab$Rnl <- 4.901*10^-9 * (1.35*climtab$Rs/(climtab$Rso+0.000001)-0.35) * (0.34 - 0.14 * climtab$Vpmin^0.5) * ((climtab$th+273.16)^4 + (climtab$tl+273.16)^4)/2
-climtab$Rns <- (1-0.23)*climtab$Rs
-climtab$Rn <- pmax(0,climtab$Rns - climtab$Rnl)
+#climtab$Rnl <- 4.901*10^-9 * (1.35*climtab$Rs/(climtab$Rso+0.000001)-0.35) * (0.34 - 0.14 * climtab$Vpmin^0.5) * ((climtab$th+273.16)^4 + (climtab$tl+273.16)^4)/2
+#climtab$Rns <- (1-0.23)*climtab$Rs
+#climtab$Rn <- pmax(0,climtab$Rns - climtab$Rnl)
+climtab$Rs <- GetSolar(climtab$Ra, Elev, climtab$th, climtab$tl, climtab$p)
+climtab$Rn <- GetNetSolar(climtab$Ra, Elev, climtab$th, climtab$tl, climtab$p)
+
 climtab$Gi = 0.07*(climtab[monind[climtab$Mon+2],]$t - climtab[monind[climtab$Mon],]$t)
 
 climtab$delta <- 2503*exp(17.27*climtab$t/(climtab$t+237.3))/(climtab$t+237.3)^2
@@ -301,7 +317,7 @@ climtab$e.gs <- 0.008404*216.7*exp(17.26939*climtab$t/
 
 climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*climtab$Days #Priestley-Taylor
 
-climtab$e.pm <- cf* (0.408*climtab$delta*pmax(0,(climtab$Rn-climtab$Gi))+gamma*900/(climtab$t+273)*2*(climtab$Vp-climtab$Vp.new))/(climtab$delta+gamma*(1+0.34*2))*climtab$Days #Penman-Monteith
+climtab$e.pm <- cf* (0.408*climtab$delta*pmax(0,(climtab$Rn-climtab$Gi))+gamma*900/(climtab$t+273)*2*(climtab$Vpmean-climtab$Vp))/(climtab$delta+gamma*(1+0.34*2))*climtab$Days #Penman-Monteith
 
 climtab$e.hs <- cf* 0.408*0.0023*(climtab$t+17.78)*(climtab$th-climtab$tl)^0.5*climtab$Ra*climtab$Days#Hargreaves Samani 
 
@@ -314,28 +330,36 @@ climtab$e.hm = 0.1651 * climtab$Dl * (216.7 * (6.108 * exp(17.26939*pmax(climtab
 if(ii==1){biglist <- climtab}else{biglist <- rbind(biglist,climtab)}
 }
 biglist$Vpdif <- biglist$Vpmax-biglist$Vpmin
-biglist$Vpdif1 <- (biglist$Vpmax-biglist$Vpmin)^0.5
-
+biglist$Vpdif1 <- (biglist$Vpmax-biglist$Vp.new)
+biglist$Vpmean = 0.6108*exp(17.27*biglist$t/(biglist$t+237.3)) #saturation vapor pressure kPa
 
 model <- lm(Rn ~  t*thtl*Ra, data=biglist)
 #model <- lm(logRn ~  logRa+logthtl, data=biglist)
 summary(model)
 numclim <- biglist[,c("Lat","Elev1","Mon","p","t","th","tl","Vpmax",
-                      "Vpmin","Vpdif","Vp","Ps","RH","Days","Ra","Dl","Rso","Rs",
-                      "Rnl","Rns","Rn","Gi","delta","RnRa","thtl","lambda",
+                      "Vpmin","Vp","Ps","RH","Days","Ra","Dl",
+                      "Rn","Gi","delta","lambda",
                       "Vpmean","e.tw","e.ho","e.gs","e.pt","e.pm",
                       "e.hs","e.tc","e.mh", "e.hm")]
 cormat <- as.data.frame(cor(numclim))
+biglist$e.br <- pmax(0,0.157*biglist$th+0.158*(biglist$th-biglist$tl)+0.109*biglist$Ra-5.39)*biglist$Days #Baier and Robertson
 
-model <- lm(e.pm ~ 0 + Ra*Vpmax, data=biglist)
+U = 2
+biglist$e.pm <- (0.408*biglist$delta*pmax(0,(biglist$Rn-biglist$Gi))+gamma*900/(biglist$t+273)*U*(biglist$Vpmean-biglist$Vp))/(biglist$delta+gamma*(1+0.34*U))*biglist$Days #Penman-Monteith
+
+model <- lm(e.pm ~ 0 + e.pt, data=biglist)
 summary(model)
+
 model <- lm(e.pm ~ 0 + Ra*Vpdif*Ps
             , data=biglist)
 summary(model)
-model <- lm(e.pm ~ 0 + 
-            +Vpdif
+biglist$logp <- log(p+1)
+model <- lm(e.pt ~ 0 + 
+            #+Vpdif
             +Ra
             +Ps
+            +Vpmax
+            +Vpmin
             #+Ra:Vpdif
             #+Ra:Vpdif:Ps
             #+Ra:Ps
@@ -353,3 +377,4 @@ model <- lm(Rn ~ 0 + Ra + Ra:RH , data=biglist)
 summary(model)
 model <- lm(Rn ~ 0 + Ra + Ra:Vpmax , data=biglist)
 summary(model)
+
