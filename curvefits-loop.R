@@ -47,8 +47,8 @@ t.vert <-  function(tr1){
 }
 
 GetVp  <- function(p,th,tl) {#Based on linear regression using 10 minute WorldClim 2.0 data with vapor pressure estimates
-  Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
-  Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
+  Vpmax = 0.6108*exp(17.27*th/(th+237.3)) #saturation vapor pressure kPa
+  Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
   Vp0 <- (Vpmin*7.976e-01+
             Vpmin*log(p+1)*9.499e-02+
             Vpmin*Vpmax*-6.599e-02)
@@ -72,6 +72,32 @@ GetNetSolar <- function(Ra, Elev, th, tl, p){
   Rns <- (1-0.23)*Rs
   Rn <- pmax(0,Rns - Rnl)
   return(Rn)}
+
+
+GetPET <- function(Ra, th, tl, p){
+  Vpmax = 0.6108*exp(17.27*th/(th+237.3)) #saturation vapor pressure kPa
+  Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
+  logp <- log(p+1)
+  e0 <- Ra*0.0508780  +
+    Vpmax*0.7893714  +
+    Vpmin*-0.5589255  +
+    logp*-0.1309403  +
+    Ra*Vpmax*0.0049383
+  e <- pmax(0,e0)
+  return(e)}
+
+
+GetTransGrow <- function(th, tl) {#Adjust to reduction in transpiration due to cold, with evaporation only outside growing season
+  b = 2 #spacer number making the temperature range wider
+  ts = 0.8 #assumed T/ET ratio during growing season
+  tw = 0.1 #assumed T/ET ratio during freezing season
+  G0 <- (th-0+b/2)/(th-tl+b) 
+  G1 <- pmin(1,pmax(0,G0)) #proportion of monthly temperature above freezing considering daily temperature range
+  evmin = (tw)+(1-ts)
+  G = G1*(1-evmin)+evmin
+  return(G)}
+
+
 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 pre.tab <- read.csv('output/clim.tab.fill.csv')#; saveRDS(pre.tab, 'output/pre.tab.RDS')
@@ -268,7 +294,7 @@ climtab$Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapo
 climtab$Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
 #climtab$Vpmean = (climtab$Vpmax+climtab$Vpmin)/2
 climtab$Vpmean = 0.6108*exp(17.27*climtab$t/(climtab$t+237.3)) #saturation vapor pressure kPa
-climtab$Vp = GetVp(p,th,tl)#actual vapor pressure kPa
+climtab$Vp = GetVp(climtab$p,climtab$th,climtab$tl)#actual vapor pressure kPa
 climtab$RH = climtab$Vp/climtab$Vpmean*100
 
 #calculate radiation ----
@@ -306,7 +332,7 @@ gamma = 0.000665*Ps
 climtab$I = (pmax(0,climtab$t)/5)^1.514#Thornthwaite
 I <- sum(climtab$I); climtab$I <- NULL#Thornthwaite
 a = 0.49239+1792*10^-5*I-771*10^-7*I^2+675*10^-9*I^3#Thornthwaite
-cf <-1# 0.92/1.26 #Correction factor to make for forest and mixed landuse vegetation instead of short grass, based on alpha of Priestly-Taylor equation
+cf <- 1# 0.92/1.26 #Correction factor to make for forest and mixed landuse vegetation instead of short grass, based on alpha of Priestly-Taylor equation
 climtab$Ps <- Ps
 climtab$e.tw = 16*(10*pmax(climtab$t,0)/I)^a*(climtab$Dl/12)*(climtab$Days/30)#Thornthwaite
 
@@ -314,6 +340,7 @@ climtab$e.ho <- 58.93/365*pmax(0, climtab$t)*climtab$Days#Holdridge
 
 climtab$e.gs <- 0.008404*216.7*exp(17.26939*climtab$t/
                                      (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*climtab$Days*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt
+climtab$e.gs2 <- GetTransGrow(climtab$th, climtab$tl)*GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)*climtab$Days
 
 climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*climtab$Days #Priestley-Taylor
 
@@ -329,52 +356,61 @@ climtab$e.hm = 0.1651 * climtab$Dl * (216.7 * (6.108 * exp(17.26939*pmax(climtab
 
 if(ii==1){biglist <- climtab}else{biglist <- rbind(biglist,climtab)}
 }
+biglist$e.pm.day <- biglist$e.gs2 / biglist$Days
+biglist$logp <- log(biglist$p+1)
+model <- lm(e.pm.day ~ 0
+            +Ra
+            +Vpmax
+            +Vpmin
+            +logp
+            +Ra:Vpmax, data=biglist)
+summary(model)
+
+
+
+
 biglist$Vpdif <- biglist$Vpmax-biglist$Vpmin
 biglist$Vpdif1 <- (biglist$Vpmax-biglist$Vp.new)
 biglist$Vpmean = 0.6108*exp(17.27*biglist$t/(biglist$t+237.3)) #saturation vapor pressure kPa
 
-model <- lm(Rn ~  t*thtl*Ra, data=biglist)
-#model <- lm(logRn ~  logRa+logthtl, data=biglist)
+model <- lm(e.tw ~ 0+ e.gs2, data=biglist)
 summary(model)
+
 numclim <- biglist[,c("Lat","Elev1","Mon","p","t","th","tl","Vpmax",
                       "Vpmin","Vp","Ps","RH","Days","Ra","Dl",
                       "Rn","Gi","delta","lambda",
-                      "Vpmean","e.tw","e.ho","e.gs","e.pt","e.pm",
+                      "Vpmean","e.tw","e.ho","e.gs","e.gs2","e.pt","e.pm",
                       "e.hs","e.tc","e.mh", "e.hm")]
 cormat <- as.data.frame(cor(numclim))
 biglist$e.br <- pmax(0,0.157*biglist$th+0.158*(biglist$th-biglist$tl)+0.109*biglist$Ra-5.39)*biglist$Days #Baier and Robertson
 
 U = 2
 biglist$e.pm <- (0.408*biglist$delta*pmax(0,(biglist$Rn-biglist$Gi))+gamma*900/(biglist$t+273)*U*(biglist$Vpmean-biglist$Vp))/(biglist$delta+gamma*(1+0.34*U))*biglist$Days #Penman-Monteith
-
 model <- lm(e.pm ~ 0 + e.pt, data=biglist)
 summary(model)
-
-model <- lm(e.pm ~ 0 + Ra*Vpdif*Ps
+biglist$logp <- log(biglist$p+1)
+model <- lm(e.pm ~ 0 + Ra*Vpmax*Vpmin*Ps
             , data=biglist)
 summary(model)
 biglist$logp <- log(p+1)
-model <- lm(e.pt ~ 0 + 
-            #+Vpdif
+
+model <- lm(e.pm.day ~ 0
             +Ra
-            +Ps
             +Vpmax
             +Vpmin
-            #+Ra:Vpdif
-            #+Ra:Vpdif:Ps
-            #+Ra:Ps
-            #+Vpdif:Ps
+            #+Ps
+            +logp
+            #+Vpmax:Vpmin
+            #+Vpmax:Ps
+            #+Vpmin:Ps
+            #+Ra:Vpmax:Vpmin
+            +Ra:Vpmax
             , data=biglist)
 summary(model)
-model <- lm(e.pm ~ 0 + Ra*Vpdif
-            , data=biglist)
-summary(model)
-model <- lm(e.pm ~ 0 + e.ho
-            , data=biglist)
-summary(model)
+Ra*0.0508780  +
+  Vpmax*0.7893714  +
+  Vpmin*-0.5589255  +
+  logp*-0.1309403  +
+  Ra:Vpmax*0.0049383
 
-model <- lm(Rn ~ 0 + Ra + Ra:RH , data=biglist)
-summary(model)
-model <- lm(Rn ~ 0 + Ra + Ra:Vpmax , data=biglist)
-summary(model)
 
