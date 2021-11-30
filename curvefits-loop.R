@@ -339,8 +339,8 @@ climtab$e.tw = 16*(10*pmax(climtab$t,0)/I)^a*(climtab$Dl/12)*(climtab$Days/30)#T
 climtab$e.ho <- 58.93/365*pmax(0, climtab$t)*climtab$Days#Holdridge
 
 climtab$e.gs <- 0.008404*216.7*exp(17.26939*climtab$t/
-                                     (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*climtab$Days*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt
-climtab$e.gs2 <- GetTransGrow(climtab$th, climtab$tl)*GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)*climtab$Days
+                                     (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*climtab$Days*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt.2018
+climtab$e.gs2 <- 0.85829*GetTransGrow(climtab$th, climtab$tl)*GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)*climtab$Days #Schmidt.2021. 0.85829 is crop factor to make comparable to Thornthwaite. Holdridge and Schmidt.2018 would be even lower.
 
 climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*climtab$Days #Priestley-Taylor
 
@@ -373,7 +373,7 @@ biglist$Vpdif <- biglist$Vpmax-biglist$Vpmin
 biglist$Vpdif1 <- (biglist$Vpmax-biglist$Vp.new)
 biglist$Vpmean = 0.6108*exp(17.27*biglist$t/(biglist$t+237.3)) #saturation vapor pressure kPa
 
-model <- lm(e.tw ~ 0+ e.gs2, data=biglist)
+model <- lm(e.gs ~ 0+ e.gs2, data=biglist)
 summary(model)
 
 numclim <- biglist[,c("Lat","Elev1","Mon","p","t","th","tl","Vpmax",

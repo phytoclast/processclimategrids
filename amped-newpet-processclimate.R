@@ -164,7 +164,7 @@ GetTransGrow <- function(i) {#Adjust to reduction in transpiration due to cold, 
   return(G)}
 
 for (i in 1:12){#i=1
-  assign(paste0('e',month[i]), GetTransGrow(i)*GetPET(i)*Days[i]); writeRaster(get(paste0('e',month[i])), paste0('output/e',month[i],'.tif'), overwrite=T)
+  assign(paste0('e',month[i]), 0.85829*GetTransGrow(i)*GetPET(i)*Days[i]); writeRaster(get(paste0('e',month[i])), paste0('output/e',month[i],'.tif'), overwrite=T)
 }
 plot(e01)
 
