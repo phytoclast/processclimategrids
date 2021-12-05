@@ -152,7 +152,7 @@ GetPET <- function(i){
 GetTransGrow <- function(i) {#Adjust to reduction in transpiration due to cold, with evaporation only outside growing season
   b = 2 #spacer number making the temperature range wider
   ts = 0.8 #assumed T/ET ratio during growing season
-  tw = 0.1 #assumed T/ET ratio during freezing season
+  tw = 0.0 #assumed T/ET ratio during freezing season
   th <- get(paste0('th',month[i]))
   tl <- get(paste0('tl',month[i]))
 
@@ -164,7 +164,7 @@ GetTransGrow <- function(i) {#Adjust to reduction in transpiration due to cold, 
   return(G)}
 
 for (i in 1:12){#i=1
-  assign(paste0('e',month[i]), 0.85829*GetTransGrow(i)*GetPET(i)*Days[i]); writeRaster(get(paste0('e',month[i])), paste0('output/e',month[i],'.tif'), overwrite=T)
+  assign(paste0('e',month[i]), 0.85*GetTransGrow(i)*GetPET(i)*Days[i]); writeRaster(get(paste0('e',month[i])), paste0('output/e',month[i],'.tif'), overwrite=T)
 }
 plot(e01)
 
@@ -181,6 +181,13 @@ for (i in 1:12){
 Bts <- max(mean(b01, b02, b03, b04, b11, b12), mean(b05, b06, b07, b08, b09, b10))
 writeRaster(Bts, paste0('output/Bts.tif'), overwrite=T)
 # Deficit/Surplus/pAET ----
+for (i in 1:12){
+  assign(paste0('b',month[i]), (get(paste0('t',month[i]))>0)*(get(paste0('t',month[i]))) )
+}
+for (i in 1:12){
+  assign(paste0('e',month[i]), rast(paste0('output/e',month[i],'.tif')))
+}
+
 for (i in 1:12){
   e = get(paste0('e',month[i]))
   p = get(paste0('p',month[i]))
@@ -199,6 +206,20 @@ for (i in 1:12){
 writeRaster(deficit, paste0('output/deficit.tif'), overwrite=T)
 writeRaster(surplus, paste0('output/surplus.tif'), overwrite=T)
 writeRaster(pAET, paste0('output/pAET.tif'), overwrite=T)
+
+qmon <- c('11','12','01','02','03','04','05','06','07','08','09','10','11','12')
+for (i in 1:12){
+    e0 = get(paste0('e',qmon[i+0]));e1 = get(paste0('e',qmon[i+1]));e2 = get(paste0('e',qmon[i+2]))
+    p0 = get(paste0('p',qmon[i+0]));p1 = get(paste0('p',qmon[i+1]));p2 = get(paste0('p',qmon[i+2]))
+    a <- (min(e0,p0)+min(e1,p1)+min(e2,p2))
+    if(i == 1){
+       p3AET <- a
+    }else{
+       p3AET <- max(p3AET, a)
+    }}
+writeRaster(p3AET, paste0('output/p3AET.tif'), overwrite=T)
+
+
 #Moisture Index ----
 e <- sum(e01,e02,e03,e04,e05,e06,e07,e08,e09,e10,e11,e12)
 ept <- sum(ept01,ept02,ept03,ept04,ept05,ept06,ept07,ept08,ept09,ept10,ept11,ept12)
@@ -223,9 +244,6 @@ e <- rast(paste0('output/e.tif'))
 p <- rast(paste0('output/p.tif'))
 for (i in 1:12){
   assign(paste0('t',month[i]), rast(paste0('output/t',month[i],'.tif')))
-}
-for (i in 1:12){
-  assign(paste0('e',month[i]), rast(paste0('output/e',month[i],'.tif')))
 }
 #Map Classification ----
 
