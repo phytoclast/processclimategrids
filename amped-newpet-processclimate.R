@@ -239,11 +239,12 @@ Tclx <- rast(paste0('output/Tclx.tif'))
 deficit <- rast(paste0('output/deficit.tif'))
 surplus <- rast(paste0('output/surplus.tif'))
 pAET <- rast(paste0('output/pAET.tif'))
+p3AET <- rast(paste0('output/p3AET.tif'))
 m <- rast(paste0('output/m.tif'))
 e <- rast(paste0('output/e.tif'))
 p <- rast(paste0('output/p.tif'))
 for (i in 1:12){
-  assign(paste0('t',month[i]), rast(paste0('output/t',month[i],'.tif')))
+  assign(paste0('t',month[i]), rast(paste0('output/amplified/t',month[i],'.tif')))
 }
 #Map Classification ----
 
@@ -255,9 +256,12 @@ isoxeric <- (m < 0.5) * (surplus < 25)
 mreg1 <- (isoxeric*-1+1)+isopluv
 pluv1 <- (pAET >= 50)*(isopluv*-1+1)
 pluv2 <- (pAET>=75)*(isopluv*-1+1)
+pluv3 <- (p3AET>=200)*(isopluv*-1+1)
 Mreg2 <- mreg1*10+(pluv1 + pluv2)+ (m>=1)*10
+Mreg3 <- mreg1*10+(pluv3)+ (m>=1)*10
 plot(Mreg2, maxcell = 1000000)
 writeRaster(Mreg2, paste0('output/Mreg2.tif'), overwrite=TRUE)
+writeRaster(Mreg3, paste0('output/Mreg3.tif'), overwrite=TRUE)
 TRegime <- (Tg >= 18)*(Cindex >= 15)*7 + 
   (Tg >= 18)*(Cindex >= 0)*(Cindex < 15)*6+
   (Tg >= 6)*(Tg < 18)*(Cindex >= 0)*5+
