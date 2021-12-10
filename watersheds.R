@@ -217,9 +217,18 @@ riv$cropcoef <- riv$aet/riv$pet
 riv$MI.aet <- riv$ppt/riv$aet
 riv$MI.pet <- riv$ppt/riv$pet
 write.csv(riv,'output/riv.csv')
-riv<-subset(riv, MI.aet > 0)
-plot(cropcoef~ppt, data=riv)
 
+riv <- read.csv('output/riv.csv')
+
+
+
+riv<-subset(riv, MI.aet > 0 & !river %in% 'Kaskaskia')
+plot(cropcoef~ppt, data=riv)
+colnames(riv[,c(2:3,5:15)])
+cortab <- as.data.frame(cor(riv[,c(2:3,5:15)]))
+
+model<- lm(runoff~0+ lat+ppt+deficit+surplus, riv)
+summary(model)
 
 plot(rast.p0)
 plot(st_geometry(rivers0), add=T)
