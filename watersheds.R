@@ -7,6 +7,8 @@ rivers <- subset(wtrshd, NAW4_EN %in% 'English')
 
 e <- rast(paste0('output/e.tif'))
 p <- rast(paste0('output/p.tif'))
+d <- rast(paste0('output/deficit.tif'))
+s <- rast(paste0('output/surplus.tif'))
 
 st_crs(wtrshd)
 naproj = as.character('PROJCS["NA Lambert Azimuthal Equal Area",
@@ -170,13 +172,17 @@ riverdischarge <- c(8000,10338,6576,
                        288.6,
                        331.9)
 
-for(i in 1:length(riverlist)){#i=1
+for(i in 1:length(riverlist)){#i=19
 
 selectedriver = riverlist[[i]]
 rivers0 <- subset(wtrshd.repr, NAW4_EN %in% riverlist[[i]])
 newext0 <- c(st_bbox(rivers0)[1],st_bbox(rivers0)[3],st_bbox(rivers0)[2],st_bbox(rivers0)[4]) 
+lat <- mean(newext0[3:4])
+lon <- mean(newext0[1:2])
 rast.p0 <- crop(p, newext0)
 rast.e0 <- crop(e, newext0)
+rast.d0 <- crop(d, newext0)
+rast.s0 <- crop(s, newext0)
 rivers1 <- subset(wtrshd, NAW4_EN %in% riverlist[[i]])
 rivers1 <- st_transform(rivers1, crs=st_crs(naproj))
 newext1 <- c(st_bbox(rivers1)[1],st_bbox(rivers1)[3],st_bbox(rivers1)[2],st_bbox(rivers1)[4]) 
@@ -184,6 +190,8 @@ fakerast <- rast(xmin=st_bbox(rivers1)[1], xmax=st_bbox(rivers1)[3], ymin=st_bbo
 resolution = c(4000,4000)) ; crs(fakerast) <- ((naproj))
 rast.p1 <- terra::project(rast.p0,fakerast)
 rast.e1 <- terra::project(rast.e0,fakerast)
+rast.d1 <- terra::project(rast.d0,fakerast)
+rast.s1 <- terra::project(rast.s0,fakerast)
 ext(fakerast)[3]
 rivers2 <- vect(rivers1)
 river.cnt <- sum(extract(rast.p1, rivers2, fun='length')[,2])
@@ -192,15 +200,26 @@ ppt <- river.sum/river.cnt
 river.cnt <- sum(extract(rast.e1, rivers2, fun='length')[,2])
 river.sum <- sum(extract(rast.e1, rivers2, fun='sum',na.rm=TRUE)[,2])
 pet <- river.sum/river.cnt
+river.cnt <- sum(extract(rast.d1, rivers2, fun='length')[,2])
+river.sum <- sum(extract(rast.d1, rivers2, fun='sum',na.rm=TRUE)[,2])
+deficit <- river.sum/river.cnt
+river.cnt <- sum(extract(rast.s1, rivers2, fun='length')[,2])
+river.sum <- sum(extract(rast.s1, rivers2, fun='sum',na.rm=TRUE)[,2])
+surplus <- river.sum/river.cnt
 
-riv0 <- data.frame(river = rivername[i], ppt,pet, discharge = riverdischarge[i], basinarea = riverarea[i])
+riv0 <- data.frame(lat= lat, lon= lon, river = rivername[i], ppt,pet,deficit,surplus, discharge = riverdischarge[i], basinarea = riverarea[i])
 if(i == 1){riv <- riv0}else{riv <- rbind(riv,riv0)}
 }
 
 riv$runoff <- riv$discharge*3600*24*365/(riv$basinarea*1000^2)*1000
 riv$aet <- riv$ppt-riv$runoff
 riv$cropcoef <- riv$aet/riv$pet
+riv$MI.aet <- riv$ppt/riv$aet
+riv$MI.pet <- riv$ppt/riv$pet
 write.csv(riv,'output/riv.csv')
+riv<-subset(riv, MI.aet > 0)
+plot(cropcoef~ppt, data=riv)
+
 
 plot(rast.p0)
 plot(st_geometry(rivers0), add=T)
