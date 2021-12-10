@@ -88,16 +88,15 @@ GetPET <- function(Ra, th, tl, p){
 
 
 GetTransGrow <- function(th, tl) {#Adjust to reduction in transpiration due to cold, with evaporation only outside growing season
-  b = 2 #spacer number making the temperature range wider
   ts = 0.8 #assumed T/ET ratio during growing season
-  tw = 0.1 #assumed T/ET ratio during freezing season
-  G0 <- (th-0+b/2)/(th-tl+b) 
-  G1 <- pmin(1,pmax(0,G0)) #proportion of monthly temperature above freezing considering daily temperature range
+  tw = 0 #assumed T/ET ratio during freezing season
+  t <- (th+tl)/2
+  tr <- ((t-tl)+10)/2 #generally as mean temperatures get below 10 transpiration shuts down, regardless of warm daytime temperatures
+   G0 <- (t-0)/(tr) 
+  G1 <- pmin(1,pmax(0,G0)) #generally as mean temperatures get below 5 transpiration shuts down, regardless of warm daytime temperatures
   evmin = (tw)+(1-ts)
   G = G1*(1-evmin)+evmin
   return(G)}
-
-
 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 pre.tab <- read.csv('output/clim.tab.fill.csv')#; saveRDS(pre.tab, 'output/pre.tab.RDS')
@@ -340,7 +339,7 @@ climtab$e.ho <- 58.93/365*pmax(0, climtab$t)*climtab$Days#Holdridge
 
 climtab$e.gs <- 0.008404*216.7*exp(17.26939*climtab$t/
                                      (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*climtab$Days*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt.2018
-climtab$e.gs2 <- 0.85829*GetTransGrow(climtab$th, climtab$tl)*GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)*climtab$Days #Schmidt.2021. 0.85829 is crop factor to make comparable to Thornthwaite. Holdridge and Schmidt.2018 would be even lower.
+climtab$e.gs2 <- 0.85*GetTransGrow(climtab$th, climtab$tl)*GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)*climtab$Days #Schmidt.2021. 0.85829 is crop factor to make comparable to Thornthwaite. Holdridge and Schmidt.2018 would be even lower.
 
 climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*climtab$Days #Priestley-Taylor
 
@@ -372,8 +371,8 @@ summary(model)
 biglist$Vpdif <- biglist$Vpmax-biglist$Vpmin
 biglist$Vpdif1 <- (biglist$Vpmax-biglist$Vp.new)
 biglist$Vpmean = 0.6108*exp(17.27*biglist$t/(biglist$t+237.3)) #saturation vapor pressure kPa
-
-model <- lm(e.gs ~ 0+ e.gs2, data=biglist)
+selected <- subset(biglist, Lat>50)
+model <- lm(e.gs2 ~ 0+ e.pm, data=selected)
 summary(model)
 
 numclim <- biglist[,c("Lat","Elev1","Mon","p","t","th","tl","Vpmax",
