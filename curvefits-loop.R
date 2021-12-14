@@ -91,7 +91,7 @@ GetTransGrow <- function(th, tl) {#Adjust to reduction in transpiration due to c
   ts = 0.8 #assumed T/ET ratio during growing season
   tw = 0 #assumed T/ET ratio during freezing season
   t <- (th+tl)/2
-  tr <- ((t-tl)+10)/2 #generally as mean temperatures get below 10 transpiration shuts down, regardless of warm daytime temperatures
+  tr <- 10 #generally as mean temperatures get below 10 transpiration shuts down, regardless of warm daytime temperatures
    G0 <- (t-0)/(tr) 
   G1 <- pmin(1,pmax(0,G0)) #generally as mean temperatures get below 5 transpiration shuts down, regardless of warm daytime temperatures
   evmin = (tw)+(1-ts)
@@ -365,14 +365,18 @@ model <- lm(e.pm.day ~ 0
             +Ra:Vpmax, data=biglist)
 summary(model)
 
+biglist$e.gs2 <- 0.85*GetTransGrow(biglist$th, biglist$tl)*GetPET(biglist$Ra, biglist$th, biglist$tl, biglist$p)*biglist$Days #Schmidt.2021. 0.85829 is crop factor to make comparable to Thornthwaite. Holdridge and Schmidt.2018 would be even lower.
 
+
+model <- lm(e.tw ~ 0+ e.gs2, data=biglist)
+summary(model)
 
 
 biglist$Vpdif <- biglist$Vpmax-biglist$Vpmin
 biglist$Vpdif1 <- (biglist$Vpmax-biglist$Vp.new)
 biglist$Vpmean = 0.6108*exp(17.27*biglist$t/(biglist$t+237.3)) #saturation vapor pressure kPa
 selected <- subset(biglist, Lat>50)
-model <- lm(e.gs2 ~ 0+ e.pm, data=selected)
+model <- lm(e.th ~ 0+ e.pm, data=selected)
 summary(model)
 
 numclim <- biglist[,c("Lat","Elev1","Mon","p","t","th","tl","Vpmax",
