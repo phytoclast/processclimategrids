@@ -150,13 +150,12 @@ GetPET <- function(i){
   return(e)}
 
 GetTransGrow <- function(i) {#Adjust to reduction in transpiration due to cold, with evaporation only outside growing season
-  b = 2 #spacer number making the temperature range wider
   ts = 0.8 #assumed T/ET ratio during growing season
   tw = 0.0 #assumed T/ET ratio during freezing season
   th <- get(paste0('th',month[i]))
   tl <- get(paste0('tl',month[i]))
-
-  G0 <- (th-0+b/2)/(th-tl+b) 
+  t <- (th+tl)/2
+  G0 <- (t-0)/10 
   G0[G0>1] = 1
   G0[G0<0] = 0 #proportion of monthly temperature above freezing considering daily temperature range
   evmin = (tw)+(1-ts)
@@ -254,9 +253,9 @@ isopluv <- (m >= 1) * (deficit < 150)
 isoxeric <- (m < 0.5) * (surplus < 25)
 
 mreg1 <- (isoxeric*-1+1)+isopluv
-pluv1 <- (pAET >= 50)*(isopluv*-1+1)
-pluv2 <- (pAET>=75)*(isopluv*-1+1)
-pluv3 <- (p3AET>=200)*(isopluv*-1+1)
+pluv1 <- (p3AET>=120)*(isopluv*-1+1)
+pluv2 <- (p3AET>=180)*(isopluv*-1+1)
+pluv3 <- (p3AET>=180)*(isopluv*-1+1)
 Mreg2 <- mreg1*10+(pluv1 + pluv2)+ (m>=1)*10
 Mreg3 <- mreg1*10+(pluv3)+ (m>=1)*10
 plot(Mreg2, maxcell = 1000000)
