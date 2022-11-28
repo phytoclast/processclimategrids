@@ -251,7 +251,8 @@ Cindex <- min(Tc, Tclx+15)
 
 isopluv <- (m >= 1) * (deficit < 150)
 isoxeric <- (m < 0.5) * (surplus < 25)
-
+# shrub <- (p3AET < 180)*(m >= 0.25)+(p3AET >= 180)*2+(p3AET >= 180)*(m >= 1.2)
+# writeRaster(shrub, paste0('output/shrub.tif'), overwrite=TRUE)
 mreg1 <- (isoxeric*-1+1)+isopluv
 pluv1 <- (p3AET>=120)*(isopluv*-1+1)
 pluv2 <- (p3AET>=180)*(isopluv*-1+1)
@@ -298,6 +299,7 @@ ClimateRegime1 <- tempclim*331 +
 writeRaster(ClimateRegime1, paste0('output/ClimateRegime5alt.tif'), overwrite=TRUE)
 
 
+
 #reproject rasters for modeling ----
 newTclx <- rast('C:/workspace2/bonapmexico/nam5k/Tclx.tif')
 
@@ -310,12 +312,53 @@ Tclx.n <- project(Tclx, newTclx, method='bilinear', filename = 'nam5k/Tclx.tif',
 deficit.n <- project(deficit, newTclx, method='bilinear', filename = 'nam5k/d.tif', overwrite=T)
 surplus.n <- project(surplus, newTclx, method='bilinear', filename = 'nam5k/s.tif', overwrite=T)
 pAET.n <- project(pAET, newTclx, method='bilinear', filename = 'nam5k/pAET.tif', overwrite=T)
+p3AET.n <- project(p3AET, newTclx, method='bilinear', filename = 'nam5k/p3AET.tif', overwrite=T)
 m.n <- project(m, newTclx, method='bilinear', filename = 'nam5k/m.tif', overwrite=T)
 e.n <- project(e, newTclx, method='bilinear', filename = 'nam5k/e.tif', overwrite=T)
 p.n <- project(p, newTclx, method='bilinear', filename = 'nam5k/p.tif', overwrite=T)
+elev.n <- project(Elev, newTclx, method='bilinear', filename = 'nam5k/elev.tif', overwrite=T)
+a <- e.n - deficit.n
+writeRaster(a, filename = 'nam5k/a.tif', overwrite=T)
+#shadow grids ---
+# shadw0 <- rast('output/shadw0.tif')
+# shadw45 <- rast('output/shadw45.tif')
+# shadw90 <- rast('output/shadw90.tif')
+# shadw135 <- rast('output/shadw135.tif')
+# shadw180 <- rast('output/shadw180.tif')
+# shadw225 <- rast('output/shadw225.tif')
+# shadw270 <- rast('output/shadw270.tif')
+# shadw315 <- rast('output/shadw315.tif')
+# shadw0.n <- project(shadw0, newTclx, method='bilinear', filename = 'nam5k/shadw0.tif', overwrite=T)
+# shadw45.n <- project(shadw45, newTclx, method='bilinear', filename = 'nam5k/shadw45.tif', overwrite=T)
+# shadw90.n <- project(shadw90, newTclx, method='bilinear', filename = 'nam5k/shadw90.tif', overwrite=T)
+# shadw135.n <- project(shadw135, newTclx, method='bilinear', filename = 'nam5k/shadw135.tif', overwrite=T)
+# shadw180.n <- project(shadw180, newTclx, method='bilinear', filename = 'nam5k/shadw180.tif', overwrite=T)
+# shadw225.n <- project(shadw225, newTclx, method='bilinear', filename = 'nam5k/shadw225.tif', overwrite=T)
+# shadw270.n <- project(shadw270, newTclx, method='bilinear', filename = 'nam5k/shadw270.tif', overwrite=T)
+# shadw315.n <- project(shadw315, newTclx, method='bilinear', filename = 'nam5k/shadw315.tif', overwrite=T)
+#Bug in terra need to use raster package to reproject
+library(raster)
+newTclx <- raster('C:/workspace2/bonapmexico/nam5k/Tclx.tif')
+
+Tg.n <- projectRaster(raster(Tg), newTclx, method='bilinear', filename = 'nam5k/Tg.tif', overwrite=T)
+Tc.n <- projectRaster(raster(Tc), newTclx, method='bilinear', filename = 'nam5k/Tc.tif', overwrite=T)
+Tcl.n <- projectRaster(raster(Tcl), newTclx, method='bilinear', filename = 'nam5k/Tcl.tif', overwrite=T)
+Tw.n <- projectRaster(raster(Tw), newTclx, method='bilinear', filename = 'nam5k/Tw.tif', overwrite=T)
+Twh.n <- projectRaster(raster(Twh), newTclx, method='bilinear', filename = 'nam5k/Twh.tif', overwrite=T)
+Tclx.n <- projectRaster(raster(Tclx), newTclx, method='bilinear', filename = 'nam5k/Tclx.tif', overwrite=T)
+deficit.n <- projectRaster(raster(deficit), newTclx, method='bilinear', filename = 'nam5k/d.tif', overwrite=T)
+surplus.n <- projectRaster(raster(surplus), newTclx, method='bilinear', filename = 'nam5k/s.tif', overwrite=T)
+pAET.n <- projectRaster(raster(pAET), newTclx, method='bilinear', filename = 'nam5k/pAET.tif', overwrite=T)
+p3AET.n <- projectRaster(raster(p3AET), newTclx, method='bilinear', filename = 'nam5k/p3AET.tif', overwrite=T)
+m.n <- projectRaster(raster(m), newTclx, method='bilinear', filename = 'nam5k/m.tif', overwrite=T)
+e.n <- projectRaster(raster(e), newTclx, method='bilinear', filename = 'nam5k/e.tif', overwrite=T)
+p.n <- projectRaster(raster(p), newTclx, method='bilinear', filename = 'nam5k/p.tif', overwrite=T)
+elev.n <- projectRaster(raster(Elev), newTclx, method='bilinear', filename = 'nam5k/elev.tif', overwrite=T)
 a <- e.n - deficit.n
 writeRaster(a, filename = 'nam5k/a.tif', overwrite=T)
 
+
+#-----
 
 plot(a, maxcell=1000000)
 
