@@ -404,7 +404,7 @@ GetTransGrow <- function(th, tl) {#Adjust to reduction in transpiration due to c
   ts = 0.8 #assumed T/ET ratio during growing season
   tw = 0 #assumed T/ET ratio during freezing season
   t <- (th+tl)/2
-  tr <- ((t-tl)+10)/2 #generally as mean temperatures get below 10 transpiration shuts down, regardless of warm daytime temperatures
+  tr <- 10 #generally as mean temperatures get below 10 transpiration shuts down, regardless of warm daytime temperatures
   G0 <- (t-0)/(tr) 
   G1 <- pmin(1,pmax(0,G0)) #generally as mean temperatures get below 5 transpiration shuts down, regardless of warm daytime temperatures
   evmin = (tw)+(1-ts)
@@ -427,14 +427,22 @@ for (i in 1:12){#i=1
     Days[i]
   names(bigbrick)[names(bigbrick) == 'e'] <- paste0('e',month[i])
 }
+
 e. = grep("^e01$", colnames(bigbrick)):grep("^e12$", colnames(bigbrick))
+#holdridge ----
 for (i in 1:12){#i=1
   bigbrick[,e.[i]] <- 58.93/365*pmax(0, bigbrick[,t.[i]])*Days[i]
 }
+#schimidt2 ---- 
 for (i in 1:12){#i=1
   bigbrick[,e.[i]] <- 0.85*GetTransGrow(bigbrick[,th.[i]], bigbrick[,tl.[i]])*
     GetPET(GetSolarRad(i,bigbrick$lat), bigbrick[,th.[i]], bigbrick[,tl.[i]], bigbrick[,p.[i]])*
     Days[i]
+}
+for (i in 1:12){#i=1
+  bigbrick[,e.[i]] <- 0.008404*216.7*exp(17.26939*bigbrick[,t.[i]]/
+                                     (bigbrick[,t.[i]]+237.3))/(bigbrick[,t.[i]]+273.3)*(bigbrick[,Ra.[i]])*Days[i]*
+    abs((bigbrick[,th.[i]] - bigbrick[,tl.[i]]))^0.5 + 0.001#Schmidt.2018
 }
 
 
@@ -463,6 +471,22 @@ if(i == 1){riv <- riv0}else{riv <- rbind(riv,riv0)}
 riv$r <- riv$discharge*3600*24*365/(riv$basinarea*1000^2)*1000
 riv$a <- riv$p-riv$r
 riv$cropcoef <- riv$a/riv$e
+riv$mi <- riv$p/riv$a
+riv$di <- riv$d/riv$p
+
 riv<-subset(riv, cropcoef > 0 & !river %in% 'Kaskaskia')
-model<- lm(r~0+ lat+p+d+s, riv)
+model<- lm(r~0+ s+p+d, riv)
 summary(model)
+
+
+#humidstations <- riv[riv$di < 0.1,]$river
+humidstations <- c("Ohio", "Mackenzie", "Yukon", "Saginaw", "Fox", "Willamette", "Des Moines", "Iowa", 
+                   "Minnesota", "Kentucky", "Osage", "Savannah", "Muskingum", "Great Miami", "Allegheny", "Roanoke", 
+                   "Kanawha", "Fond-du-Lac", "Saskatchewan", "Cumberland", "Apalachicola", "Penobscot", "Connecticut",
+                   "Wisconsin", "Wabash", "Fort Nelson")
+riv<-subset(riv, river %in% humidstations)
+
+model<- lm(a~0+ e, riv)
+summary(model)
+
+plot(r~s, riv)
